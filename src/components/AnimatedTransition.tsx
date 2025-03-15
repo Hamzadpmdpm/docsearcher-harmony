@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 interface AnimatedTransitionProps {
   children: React.ReactNode;
   className?: string;
-  animation?: 'fade' | 'slide-up' | 'scale';
+  animation?: 'fade' | 'slide-up' | 'slide-down' | 'scale';
   duration?: 'fast' | 'normal' | 'slow';
   delay?: number;
 }
@@ -33,6 +33,8 @@ const AnimatedTransition = ({
         return 'animate-fade-in';
       case 'slide-up':
         return 'animate-slide-up';
+      case 'slide-down':
+        return 'animate-slide-down';
       case 'scale':
         return 'animate-scale-in';
       default:
