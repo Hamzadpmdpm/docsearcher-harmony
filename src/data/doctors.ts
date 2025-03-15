@@ -1,4 +1,3 @@
-
 export interface Doctor {
   id: string;
   name: string;
@@ -150,7 +149,7 @@ export const doctors: Doctor[] = [
     contact: {
       phone: '(555) 567-8901',
       email: 'olivia.taylor@childrenshosp.org',
-      address: '2020 Children's Way, Chicago, IL 60614'
+      address: '2020 Children\'s Way, Chicago, IL 60614'
     }
   },
   {
@@ -196,7 +195,7 @@ export const doctors: Doctor[] = [
     contact: {
       phone: '(555) 789-0123',
       email: 'sophia.kim@womenshealth.org',
-      address: '4040 Women's Health Blvd, New York, NY 10032'
+      address: '4040 Women\'s Health Blvd, New York, NY 10032'
     }
   },
   {
