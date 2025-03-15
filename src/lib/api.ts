@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 export async function getDoctors(options: {
   specialty?: string | null;
   searchQuery?: string;
+  city?: string;
+  state?: string;
 } = {}): Promise<SupabaseDoctor[]> {
   try {
     let query = supabase
@@ -21,6 +23,16 @@ export async function getDoctors(options: {
       query = query.or(
         `name.ilike.%${searchTerm}%,specialty.ilike.%${searchTerm}%,hospital.ilike.%${searchTerm}%`
       );
+    }
+    
+    // Add city filter if provided
+    if (options.city && options.city.trim() !== '') {
+      query = query.ilike('contact->>city', `%${options.city}%`);
+    }
+    
+    // Add state filter if provided
+    if (options.state && options.state.trim() !== '') {
+      query = query.ilike('contact->>state', `%${options.state}%`);
     }
     
     const { data, error } = await query;

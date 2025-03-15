@@ -1,12 +1,12 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock, Heart } from 'lucide-react';
+import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock } from 'lucide-react';
 import Header from '@/components/Header';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { cn } from '@/lib/utils';
 import { getDoctorById } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const DoctorProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +21,16 @@ const DoctorProfile = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
+
+  const handleCallNow = () => {
+    if (doctor?.contact?.phone) {
+      // Using tel: protocol to initiate a call
+      window.location.href = `tel:${doctor.contact.phone}`;
+      toast.success(`Calling ${doctor.name}...`);
+    } else {
+      toast.error("Phone number not available");
+    }
+  };
   
   if (isLoading) {
     return (
@@ -80,7 +90,6 @@ const DoctorProfile = () => {
           </AnimatedTransition>
           
           <div className="bg-white rounded-2xl shadow-subtle overflow-hidden">
-            {/* Doctor Header */}
             <div className="bg-health-600 py-12 px-8 relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-health-700 to-health-500 opacity-80"></div>
               <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6">
@@ -126,10 +135,8 @@ const DoctorProfile = () => {
               </div>
             </div>
             
-            {/* Doctor Info */}
             <div className="p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Left Column */}
                 <div className="md:col-span-2">
                   <AnimatedTransition animation="fade" delay={400} className="mb-8">
                     <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
@@ -153,7 +160,6 @@ const DoctorProfile = () => {
                   </AnimatedTransition>
                 </div>
                 
-                {/* Right Column */}
                 <div>
                   <AnimatedTransition animation="scale" delay={450} className="mb-6">
                     <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-subtle">
@@ -220,9 +226,12 @@ const DoctorProfile = () => {
                   </AnimatedTransition>
                   
                   <AnimatedTransition animation="scale" delay={650}>
-                    <button className="w-full py-3 px-4 bg-health-600 text-white rounded-xl font-medium hover:bg-health-700 transition-colors flex items-center justify-center shadow-subtle">
-                      <Heart size={18} className="mr-2" />
-                      Request Appointment
+                    <button 
+                      onClick={handleCallNow}
+                      className="w-full py-3 px-4 bg-health-600 text-white rounded-xl font-medium hover:bg-health-700 transition-colors flex items-center justify-center shadow-subtle"
+                    >
+                      <Phone size={18} className="mr-2" />
+                      Call Now
                     </button>
                   </AnimatedTransition>
                 </div>
@@ -232,7 +241,6 @@ const DoctorProfile = () => {
         </div>
       </main>
       
-      {/* Footer */}
       <footer className="py-8 px-6 bg-gray-50 mt-auto">
         <div className="max-w-7xl mx-auto text-center text-gray-500 text-sm">
           &copy; {new Date().getFullYear()} HealthCare Directory. All rights reserved.

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Filter } from 'lucide-react';
 import Header from '@/components/Header';
 import SearchBar from '@/components/SearchBar';
 import DoctorCard from '@/components/DoctorCard';
@@ -10,16 +10,23 @@ import AnimatedTransition from '@/components/AnimatedTransition';
 import { getDoctors } from '@/lib/api';
 import { SupabaseDoctor } from '@/types/supabase';
 import { useQuery } from '@tanstack/react-query';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const DoctorsList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [stateFilter, setStateFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Get initial filters from URL params
   useEffect(() => {
     const specialtyParam = searchParams.get('specialty');
     const searchParam = searchParams.get('search');
+    const cityParam = searchParams.get('city');
+    const stateParam = searchParams.get('state');
     
     if (specialtyParam) {
       setSelectedSpecialty(specialtyParam);
@@ -28,28 +35,48 @@ const DoctorsList = () => {
     if (searchParam) {
       setSearchQuery(searchParam);
     }
+
+    if (cityParam) {
+      setCityFilter(cityParam);
+    }
+
+    if (stateParam) {
+      setStateFilter(stateParam);
+    }
   }, [searchParams]);
   
   // Fetch doctors with react-query
   const { data: doctors = [], isLoading } = useQuery({
-    queryKey: ['doctors', selectedSpecialty, searchQuery],
+    queryKey: ['doctors', selectedSpecialty, searchQuery, cityFilter, stateFilter],
     queryFn: () => getDoctors({ 
       specialty: selectedSpecialty, 
-      searchQuery: searchQuery 
+      searchQuery: searchQuery,
+      city: cityFilter,
+      state: stateFilter
     }),
   });
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    updateSearchParams(query, selectedSpecialty);
+    updateSearchParams(query, selectedSpecialty, cityFilter, stateFilter);
   };
   
   const handleSelectSpecialty = (specialty: string | null) => {
     setSelectedSpecialty(specialty);
-    updateSearchParams(searchQuery, specialty);
+    updateSearchParams(searchQuery, specialty, cityFilter, stateFilter);
+  };
+
+  const handleCityChange = (city: string) => {
+    setCityFilter(city);
+    updateSearchParams(searchQuery, selectedSpecialty, city, stateFilter);
+  };
+
+  const handleStateChange = (state: string) => {
+    setStateFilter(state);
+    updateSearchParams(searchQuery, selectedSpecialty, cityFilter, state);
   };
   
-  const updateSearchParams = (search: string, specialty: string | null) => {
+  const updateSearchParams = (search: string, specialty: string | null, city: string, state: string) => {
     const newParams = new URLSearchParams();
     
     if (search) {
@@ -59,8 +86,20 @@ const DoctorsList = () => {
     if (specialty) {
       newParams.set('specialty', specialty);
     }
+
+    if (city) {
+      newParams.set('city', city);
+    }
+
+    if (state) {
+      newParams.set('state', state);
+    }
     
     setSearchParams(newParams);
+  };
+
+  const toggleFilters = () => {
+    setShowFilters(!showFilters);
   };
   
   return (
@@ -81,13 +120,47 @@ const DoctorsList = () => {
               className="flex-grow"
             />
             
-            <div className="w-full md:w-64">
-              <SpecialtyFilter 
-                selectedSpecialty={selectedSpecialty} 
-                onSelectSpecialty={handleSelectSpecialty} 
-              />
-            </div>
+            <Button 
+              variant="outline" 
+              onClick={toggleFilters} 
+              className="flex items-center gap-2 w-full md:w-auto"
+            >
+              <Filter size={16} />
+              Filters
+            </Button>
           </div>
+
+          {showFilters && (
+            <AnimatedTransition animation="slide-down" className="mb-6 p-4 bg-gray-50 rounded-lg shadow-subtle">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
+                  <SpecialtyFilter 
+                    selectedSpecialty={selectedSpecialty} 
+                    onSelectSpecialty={handleSelectSpecialty} 
+                  />
+                </div>
+                <div>
+                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <Input
+                    id="city"
+                    placeholder="Filter by city"
+                    value={cityFilter}
+                    onChange={(e) => handleCityChange(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">State</label>
+                  <Input
+                    id="state"
+                    placeholder="Filter by state"
+                    value={stateFilter}
+                    onChange={(e) => handleStateChange(e.target.value)}
+                  />
+                </div>
+              </div>
+            </AnimatedTransition>
+          )}
           
           <div className="mb-4 flex justify-between items-center">
             <AnimatedTransition animation="slide-up" delay={100}>
@@ -98,6 +171,8 @@ const DoctorsList = () => {
                   {doctors.length} {doctors.length === 1 ? 'doctor' : 'doctors'} found
                   {selectedSpecialty && ` in ${selectedSpecialty}`}
                   {searchQuery && ` matching "${searchQuery}"`}
+                  {cityFilter && ` in ${cityFilter}`}
+                  {stateFilter && `, ${stateFilter}`}
                 </p>
               )}
             </AnimatedTransition>
