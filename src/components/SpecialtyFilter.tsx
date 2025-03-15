@@ -2,7 +2,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { specialties } from '@/data/doctors';
+import { getSpecialties } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 interface SpecialtyFilterProps {
   selectedSpecialty: string | null;
@@ -12,6 +13,12 @@ interface SpecialtyFilterProps {
 const SpecialtyFilter = ({ selectedSpecialty, onSelectSpecialty }: SpecialtyFilterProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const { data: specialties = [] } = useQuery({
+    queryKey: ['specialties'],
+    queryFn: getSpecialties,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
   
   // Close dropdown when clicking outside
   useEffect(() => {

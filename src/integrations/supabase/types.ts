@@ -9,10 +9,68 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      doctors: {
+        Row: {
+          accepting_new_patients: boolean
+          bio: string
+          contact: Json
+          created_at: string
+          education: string[]
+          experience: number
+          hospital: string
+          id: string
+          image: string
+          languages: string[]
+          name: string
+          rating: number
+          specialty: string
+          subspecialties: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          accepting_new_patients?: boolean
+          bio: string
+          contact: Json
+          created_at?: string
+          education: string[]
+          experience: number
+          hospital: string
+          id?: string
+          image?: string
+          languages: string[]
+          name: string
+          rating: number
+          specialty: string
+          subspecialties?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          accepting_new_patients?: boolean
+          bio?: string
+          contact?: Json
+          created_at?: string
+          education?: string[]
+          experience?: number
+          hospital?: string
+          id?: string
+          image?: string
+          languages?: string[]
+          name?: string
+          rating?: number
+          specialty?: string
+          subspecialties?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
-      [_ in never]: never
+      specialties: {
+        Row: {
+          specialty: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

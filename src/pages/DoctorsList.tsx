@@ -1,18 +1,18 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, PlusCircle, SlidersHorizontal } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import SearchBar from '@/components/SearchBar';
 import DoctorCard from '@/components/DoctorCard';
 import SpecialtyFilter from '@/components/SpecialtyFilter';
 import AnimatedTransition from '@/components/AnimatedTransition';
-import { doctors } from '@/data/doctors';
-import { cn } from '@/lib/utils';
+import { getDoctors } from '@/lib/api';
+import { SupabaseDoctor } from '@/types/supabase';
+import { useQuery } from '@tanstack/react-query';
 
 const DoctorsList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filteredDoctors, setFilteredDoctors] = useState(doctors);
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -28,40 +28,25 @@ const DoctorsList = () => {
     if (searchParam) {
       setSearchQuery(searchParam);
     }
-    
-    applyFilters(searchParam || '', specialtyParam);
   }, [searchParams]);
   
-  const applyFilters = (search: string, specialty: string | null) => {
-    let result = [...doctors];
-    
-    if (search) {
-      const lowerSearch = search.toLowerCase();
-      result = result.filter(doctor => 
-        doctor.name.toLowerCase().includes(lowerSearch) ||
-        doctor.specialty.toLowerCase().includes(lowerSearch) ||
-        doctor.hospital.toLowerCase().includes(lowerSearch) ||
-        doctor.subspecialties?.some(sub => sub.toLowerCase().includes(lowerSearch))
-      );
-    }
-    
-    if (specialty) {
-      result = result.filter(doctor => doctor.specialty === specialty);
-    }
-    
-    setFilteredDoctors(result);
-  };
+  // Fetch doctors with react-query
+  const { data: doctors = [], isLoading } = useQuery({
+    queryKey: ['doctors', selectedSpecialty, searchQuery],
+    queryFn: () => getDoctors({ 
+      specialty: selectedSpecialty, 
+      searchQuery: searchQuery 
+    }),
+  });
   
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     updateSearchParams(query, selectedSpecialty);
-    applyFilters(query, selectedSpecialty);
   };
   
   const handleSelectSpecialty = (specialty: string | null) => {
     setSelectedSpecialty(specialty);
     updateSearchParams(searchQuery, specialty);
-    applyFilters(searchQuery, specialty);
   };
   
   const updateSearchParams = (search: string, specialty: string | null) => {
@@ -106,17 +91,27 @@ const DoctorsList = () => {
           
           <div className="mb-4 flex justify-between items-center">
             <AnimatedTransition animation="slide-up" delay={100}>
-              <p className="text-gray-600">
-                {filteredDoctors.length} {filteredDoctors.length === 1 ? 'doctor' : 'doctors'} found
-                {selectedSpecialty && ` in ${selectedSpecialty}`}
-                {searchQuery && ` matching "${searchQuery}"`}
-              </p>
+              {isLoading ? (
+                <p className="text-gray-600">Loading doctors...</p>
+              ) : (
+                <p className="text-gray-600">
+                  {doctors.length} {doctors.length === 1 ? 'doctor' : 'doctors'} found
+                  {selectedSpecialty && ` in ${selectedSpecialty}`}
+                  {searchQuery && ` matching "${searchQuery}"`}
+                </p>
+              )}
             </AnimatedTransition>
           </div>
           
-          {filteredDoctors.length > 0 ? (
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredDoctors.map((doctor, index) => (
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse h-64 bg-gray-100 rounded-xl"></div>
+              ))}
+            </div>
+          ) : doctors.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {doctors.map((doctor, index) => (
                 <AnimatedTransition key={doctor.id} animation="scale" delay={150 + (index * 50)}>
                   <DoctorCard doctor={doctor} index={index} />
                 </AnimatedTransition>

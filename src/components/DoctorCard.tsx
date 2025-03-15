@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Doctor } from '@/data/doctors';
+import { SupabaseDoctor } from '@/types/supabase';
 
 interface DoctorCardProps {
-  doctor: Doctor;
+  doctor: SupabaseDoctor;
   index?: number;
 }
 
@@ -68,7 +68,7 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
             </div>
             
             <div className="flex items-center">
-              {doctor.acceptingNewPatients ? (
+              {doctor.accepting_new_patients ? (
                 <div className="flex items-center text-green-600 text-sm">
                   <CheckCircle size={14} className="mr-1" />
                   <span>Accepting Patients</span>
