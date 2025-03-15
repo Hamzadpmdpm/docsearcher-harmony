@@ -4,24 +4,63 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock, Heart } from 'lucide-react';
 import Header from '@/components/Header';
 import AnimatedTransition from '@/components/AnimatedTransition';
-import { doctors } from '@/data/doctors';
 import { cn } from '@/lib/utils';
+import { getDoctorById } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 const DoctorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [doctor, setDoctor] = useState(doctors.find(d => d.id === id));
+  
+  const { data: doctor, isLoading, error } = useQuery({
+    queryKey: ['doctor', id],
+    queryFn: () => getDoctorById(id || ''),
+    enabled: !!id,
+  });
   
   useEffect(() => {
     window.scrollTo(0, 0);
-    
-    if (!id || !doctor) {
-      navigate('/doctors', { replace: true });
-    }
-  }, [id, doctor, navigate]);
+  }, [id]);
   
-  if (!doctor) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-grow pt-24 pb-16 px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-subtle p-8 flex items-center justify-center">
+              <div className="animate-pulse text-center">
+                <div className="h-8 w-48 bg-gray-200 rounded mb-4 mx-auto"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded mx-auto"></div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
+  if (error || !doctor) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-grow pt-24 pb-16 px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-subtle p-8 text-center">
+              <h2 className="text-xl font-medium text-gray-900 mb-2">Doctor Not Found</h2>
+              <p className="text-gray-600 mb-4">The doctor you're looking for doesn't exist or has been removed.</p>
+              <button 
+                onClick={() => navigate('/doctors')}
+                className="inline-flex items-center text-health-600 hover:text-health-700"
+              >
+                <ArrowLeft size={16} className="mr-2" />
+                <span>Return to Doctor Directory</span>
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
   
   return (
@@ -165,14 +204,14 @@ const DoctorProfile = () => {
                         <div className="flex items-start">
                           <CheckCircle size={18} className={cn(
                             "mt-1 mr-3 flex-shrink-0",
-                            doctor.acceptingNewPatients ? "text-green-600" : "text-gray-400"
+                            doctor.accepting_new_patients ? "text-green-600" : "text-gray-400"
                           )} />
                           <div>
                             <span className="font-medium text-gray-900 block mb-1">Accepting New Patients</span>
                             <span className={cn(
-                              doctor.acceptingNewPatients ? "text-green-600" : "text-gray-500"
+                              doctor.accepting_new_patients ? "text-green-600" : "text-gray-500"
                             )}>
-                              {doctor.acceptingNewPatients ? "Yes" : "Not at this time"}
+                              {doctor.accepting_new_patients ? "Yes" : "Not at this time"}
                             </span>
                           </div>
                         </div>
