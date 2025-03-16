@@ -9,12 +9,86 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      doctor_ratings: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          doctor_id: string
+          id: string
+          rating: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          doctor_id: string
+          id?: string
+          rating: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          doctor_id?: string
+          id?: string
+          rating?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_ratings_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_verifications: {
+        Row: {
+          created_at: string | null
+          doctor_id: string
+          id: string
+          updated_at: string | null
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string | null
+          doctor_id: string
+          id?: string
+          updated_at?: string | null
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string | null
+          doctor_id?: string
+          id?: string
+          updated_at?: string | null
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_verifications_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           accepting_new_patients: boolean
           bio: string
           contact: Json
           created_at: string
+          created_by_user_id: string | null
           education: string[]
           experience: number
           hospital: string
@@ -32,6 +106,7 @@ export type Database = {
           bio: string
           contact: Json
           created_at?: string
+          created_by_user_id?: string | null
           education: string[]
           experience: number
           hospital: string
@@ -49,6 +124,7 @@ export type Database = {
           bio?: string
           contact?: Json
           created_at?: string
+          created_by_user_id?: string | null
           education?: string[]
           experience?: number
           hospital?: string
@@ -63,6 +139,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          updated_at: string | null
+          user_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          updated_at?: string | null
+          user_type: string
+        }
+        Update: {
+          created_at?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string | null
+          user_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       specialties: {
@@ -73,7 +176,12 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_doctor_average_rating: {
+        Args: {
+          doctor_id: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

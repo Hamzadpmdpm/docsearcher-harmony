@@ -1,18 +1,27 @@
-import { useEffect } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock } from 'lucide-react';
 import Header from '@/components/Header';
 import AnimatedTransition from '@/components/AnimatedTransition';
+import DoctorRatingForm from '@/components/DoctorRatingForm';
+import DoctorVerificationBadge from '@/components/DoctorVerificationBadge';
 import { cn } from '@/lib/utils';
-import { getDoctorById } from '@/lib/api';
+import { getDoctorById, getDoctorRatings } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { DoctorRating } from '@/types/supabase';
+import { Avatar } from '@/components/ui/avatar';
+import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const DoctorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [ratings, setRatings] = useState<DoctorRating[]>([]);
   
-  const { data: doctor, isLoading, error } = useQuery({
+  const { data: doctor, isLoading, error, refetch } = useQuery({
     queryKey: ['doctor', id],
     queryFn: () => getDoctorById(id || ''),
     enabled: !!id,
@@ -22,6 +31,17 @@ const DoctorProfile = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  useEffect(() => {
+    const fetchRatings = async () => {
+      if (id) {
+        const doctorRatings = await getDoctorRatings(id);
+        setRatings(doctorRatings);
+      }
+    };
+    
+    fetchRatings();
+  }, [id]);
+
   const handleCallNow = () => {
     if (doctor?.contact?.phone) {
       // Using tel: protocol to initiate a call
@@ -29,6 +49,16 @@ const DoctorProfile = () => {
       toast.success(`Calling ${doctor.name}...`);
     } else {
       toast.error("Phone number not available");
+    }
+  };
+
+  const handleRatingSubmitted = () => {
+    // Refetch doctor to get updated rating
+    refetch();
+    
+    // Refetch ratings
+    if (id) {
+      getDoctorRatings(id).then(ratings => setRatings(ratings));
     }
   };
   
@@ -109,6 +139,9 @@ const DoctorProfile = () => {
                         <Star size={16} className="text-yellow-300 fill-yellow-300 mr-1" />
                         <span className="font-medium">{doctor.rating}</span>
                       </div>
+                      {id && doctor && (
+                        <DoctorVerificationBadge doctorId={id} doctor={doctor} />
+                      )}
                     </div>
                   </AnimatedTransition>
                   
@@ -158,6 +191,59 @@ const DoctorProfile = () => {
                       </ul>
                     </div>
                   </AnimatedTransition>
+                  
+                  <AnimatedTransition animation="fade" delay={600} className="mb-8">
+                    <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
+                      <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold">Patient Ratings & Reviews</h2>
+                        {id && (
+                          <DoctorRatingForm doctorId={id} onRatingSubmitted={handleRatingSubmitted} />
+                        )}
+                      </div>
+                      
+                      {ratings.length > 0 ? (
+                        <div className="space-y-6">
+                          {ratings.map((rating) => (
+                            <div key={rating.id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                              <div className="flex items-start gap-3">
+                                <Avatar className="w-10 h-10">
+                                  <AvatarFallback className="bg-health-100 text-health-600">
+                                    {rating.user_id.substring(0, 2).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <div className="flex items-center mb-2">
+                                    <div className="flex">
+                                      {[...Array(5)].map((_, i) => (
+                                        <Star 
+                                          key={i}
+                                          size={14}
+                                          className={i < rating.rating 
+                                            ? "text-yellow-500 fill-yellow-500" 
+                                            : "text-gray-300"
+                                          }
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="text-xs text-gray-500 ml-2">
+                                      {new Date(rating.created_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  {rating.comment && (
+                                    <p className="text-gray-700 text-sm">{rating.comment}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-center py-4">
+                          No ratings yet. Be the first to rate this doctor!
+                        </p>
+                      )}
+                    </div>
+                  </AnimatedTransition>
                 </div>
                 
                 <div>
@@ -175,7 +261,15 @@ const DoctorProfile = () => {
                         </li>
                         <li className="flex items-start">
                           <MapPin size={18} className="text-health-600 mt-1 mr-3 flex-shrink-0" />
-                          <span className="text-gray-700">{doctor.contact.address}</span>
+                          <div>
+                            <span className="text-gray-700 block">{doctor.contact.address}</span>
+                            {(doctor.contact.city || doctor.contact.state) && (
+                              <span className="text-gray-700">
+                                {doctor.contact.city}{doctor.contact.city && doctor.contact.state ? ', ' : ''}
+                                {doctor.contact.state}
+                              </span>
+                            )}
+                          </div>
                         </li>
                       </ul>
                     </div>
