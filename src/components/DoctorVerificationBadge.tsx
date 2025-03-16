@@ -1,11 +1,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDoctorById, getDoctorVerification, requestDoctorVerification } from '@/lib/api';
-import { BadgeCheck, Info, User } from 'lucide-react';
+import { getDoctorVerification, requestDoctorVerification } from '@/lib/api';
+import { BadgeCheck, Info, User, Shield, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SupabaseDoctor } from '@/types/supabase';
+import { Link } from 'react-router-dom';
 
 interface DoctorVerificationBadgeProps {
   doctorId: string;
@@ -18,6 +19,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
   const [isVerified, setIsVerified] = useState(false);
   const [hasRequestedVerification, setHasRequestedVerification] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isClaimDialogOpen, setIsClaimDialogOpen] = useState(false);
   
   useEffect(() => {
     const checkVerificationStatus = async () => {
@@ -118,8 +120,72 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
     );
   }
   
-  // Default (unverified profile)
-  return null;
+  // Default (unverified profile) - Add the claim profile button for doctors who are not logged in
+  return (
+    <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
+      <DialogTrigger asChild>
+        <button className="flex items-center text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm hover:bg-amber-100 transition-colors">
+          <ShieldQuestion size={16} className="mr-1" />
+          <span>Unverified Profile</span>
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Are you Dr. {doctor.name}?</DialogTitle>
+          <DialogDescription>
+            This profile was created by the community. If this is your profile, you can claim it and verify your information.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="py-6 space-y-4">
+          <p className="text-sm text-gray-700">
+            By claiming this profile, you'll be able to:
+          </p>
+          <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+            <li>Update your professional information</li>
+            <li>Respond to reviews</li>
+            <li>Get a verified badge</li>
+            <li>Manage your appointment availability</li>
+          </ul>
+          
+          <div className="flex flex-col space-y-3 mt-4">
+            {user ? (
+              <>
+                {profile?.user_type === 'doctor' ? (
+                  <Button
+                    onClick={handleVerificationRequest}
+                    className="bg-health-600 hover:bg-health-700"
+                  >
+                    <Shield className="mr-2" size={16} />
+                    Claim this profile
+                  </Button>
+                ) : (
+                  <p className="text-sm text-amber-600">
+                    Your account is registered as a patient. Only doctor accounts can claim profiles.
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <Link to="/auth?type=signin&redirect=doctors" className="w-full">
+                  <Button className="w-full bg-health-600 hover:bg-health-700">
+                    <User className="mr-2" size={16} />
+                    Sign in as a doctor
+                  </Button>
+                </Link>
+                <Link to="/auth?type=signup&userType=doctor&redirect=doctors" className="w-full">
+                  <Button variant="outline" className="w-full">
+                    <Shield className="mr-2" size={16} />
+                    Sign up as a doctor
+                  </Button>
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 export default DoctorVerificationBadge;
