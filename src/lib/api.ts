@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -195,6 +196,45 @@ export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boole
     console.error('Error in verifyDoctorByCurrentUser:', error);
     toast.error('Failed to claim profile');
     return false;
+  }
+}
+
+// Get doctor profiles claimed by a user
+export async function getDoctorProfilesByUserId(userId: string): Promise<SupabaseDoctor[]> {
+  try {
+    // Get verified doctor IDs for this user
+    const { data: verifications, error: verificationError } = await supabase
+      .from('doctor_verifications')
+      .select('doctor_id')
+      .eq('user_id', userId)
+      .eq('verified', true);
+    
+    if (verificationError) {
+      console.error('Error fetching verified doctors:', verificationError);
+      return [];
+    }
+    
+    // If no verifications, return empty array
+    if (!verifications || verifications.length === 0) {
+      return [];
+    }
+    
+    // Get doctor profiles matching these IDs
+    const doctorIds = verifications.map(v => v.doctor_id);
+    const { data: doctors, error: doctorsError } = await supabase
+      .from('doctors')
+      .select('*')
+      .in('id', doctorIds);
+    
+    if (doctorsError) {
+      console.error('Error fetching doctor profiles:', doctorsError);
+      return [];
+    }
+    
+    return doctors as SupabaseDoctor[];
+  } catch (error) {
+    console.error('Error in getDoctorProfilesByUserId:', error);
+    return [];
   }
 }
 

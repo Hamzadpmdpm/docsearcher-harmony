@@ -18,7 +18,6 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
   const { user, profile } = useAuth();
   const [isUserTheDoctor, setIsUserTheDoctor] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [hasRequestedVerification, setHasRequestedVerification] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isClaimDialogOpen, setIsClaimDialogOpen] = useState(false);
   
@@ -27,13 +26,12 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
       if (doctor.created_by_user_id && user) {
         // Check if current user created this doctor profile
         setIsUserTheDoctor(doctor.created_by_user_id === user.id);
-        
-        // Check verification status
-        if (user && doctorId) {
-          const verification = await getDoctorVerification(doctorId, user.id);
-          setHasRequestedVerification(!!verification);
-          setIsVerified(verification?.verified || false);
-        }
+      }
+      
+      // Check verification status
+      if (user && doctorId) {
+        const verification = await getDoctorVerification(doctorId, user.id);
+        setIsVerified(verification?.verified || false);
       }
     };
     
@@ -79,7 +77,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
   }
   
   // If user is the actual doctor but hasn't claimed the profile
-  if (user && profile?.user_type === 'doctor' && !isUserTheDoctor && !hasRequestedVerification) {
+  if (user && profile?.user_type === 'doctor' && !isUserTheDoctor && !isVerified) {
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
@@ -118,16 +116,6 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
           </div>
         </DialogContent>
       </Dialog>
-    );
-  }
-  
-  // If verification has been requested
-  if (hasRequestedVerification && !isVerified) {
-    return (
-      <div className="flex items-center text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-sm">
-        <Info size={16} className="mr-1" />
-        <span>Verification Pending</span>
-      </div>
     );
   }
   

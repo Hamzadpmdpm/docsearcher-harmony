@@ -2,19 +2,20 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDoctors, getProfileById } from '@/lib/api';
+import { getDoctors, getProfileById, getDoctorProfilesByUserId } from '@/lib/api';
 import { SupabaseDoctor } from '@/types/supabase';
 import Header from '@/components/Header';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import DoctorCard from '@/components/DoctorCard';
 import { Button } from '@/components/ui/button';
-import { User, UserCog, Heart, StarIcon, LogOut, Plus } from 'lucide-react';
+import { User, UserCog, Heart, StarIcon, LogOut, Plus, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [doctorProfiles, setDoctorProfiles] = useState<SupabaseDoctor[]>([]);
+  const [createdDoctorProfiles, setCreatedDoctorProfiles] = useState<SupabaseDoctor[]>([]);
+  const [claimedDoctorProfiles, setClaimedDoctorProfiles] = useState<SupabaseDoctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -26,11 +27,18 @@ const Profile = () => {
 
   useEffect(() => {
     const fetchDoctorProfiles = async () => {
-      if (user && profile?.user_type === 'doctor') {
+      if (user && profile) {
         try {
-          const doctors = await getDoctors();
-          const userDoctors = doctors.filter(doctor => doctor.created_by_user_id === user.id);
-          setDoctorProfiles(userDoctors);
+          // Get profiles created by user
+          if (profile.user_type === 'doctor') {
+            const doctors = await getDoctors();
+            const userCreatedDoctors = doctors.filter(doctor => doctor.created_by_user_id === user.id);
+            setCreatedDoctorProfiles(userCreatedDoctors);
+          }
+          
+          // Get profiles claimed by user
+          const claimedProfiles = await getDoctorProfilesByUserId(user.id);
+          setClaimedDoctorProfiles(claimedProfiles);
         } catch (error) {
           console.error('Error fetching doctor profiles:', error);
         } finally {
@@ -122,77 +130,120 @@ const Profile = () => {
               </div>
               
               {profile.user_type === 'doctor' && (
-                <AnimatedTransition animation="slide-up" className="mb-8">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <UserCog className="mr-2" size={18} />
-                    Your Doctor Profiles
-                  </h2>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {doctorProfiles.length > 0 ? (
-                      doctorProfiles.map((doctor, index) => (
-                        <DoctorCard key={doctor.id} doctor={doctor} index={index} />
-                      ))
-                    ) : (
-                      <div className="col-span-full">
-                        <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-                          <p className="text-gray-600 mb-4">You haven't created any doctor profiles yet.</p>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button className="bg-health-600 hover:bg-health-700">
-                                <Plus size={16} className="mr-2" />
-                                Create Doctor Profile
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Create Doctor Profile</DialogTitle>
-                                <DialogDescription>
-                                  To create a doctor profile, you'll need to provide professional details.
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="py-4">
-                                <Button 
-                                  className="w-full bg-health-600 hover:bg-health-700"
-                                  onClick={() => navigate('/doctors/create')}
-                                >
-                                  Continue to Doctor Profile Creation
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-                    )}
+                <>
+                  {/* Created doctor profiles section */}
+                  <AnimatedTransition animation="slide-up" className="mb-8">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <UserCog className="mr-2" size={18} />
+                      Your Created Doctor Profiles
+                    </h2>
                     
-                    {doctorProfiles.length > 0 && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button className="col-span-full bg-health-600 hover:bg-health-700 mt-4">
-                            <Plus size={16} className="mr-2" />
-                            Create Another Doctor Profile
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Create Doctor Profile</DialogTitle>
-                            <DialogDescription>
-                              To create a doctor profile, you'll need to provide professional details.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {createdDoctorProfiles.length > 0 ? (
+                        createdDoctorProfiles.map((doctor, index) => (
+                          <div key={doctor.id} className="relative">
+                            <DoctorCard doctor={doctor} index={index} />
                             <Button 
-                              className="w-full bg-health-600 hover:bg-health-700"
-                              onClick={() => navigate('/doctors/create')}
+                              variant="outline"
+                              className="absolute top-4 right-4 bg-white opacity-90 hover:opacity-100 p-2 h-auto"
+                              onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
                             >
-                              Continue to Doctor Profile Creation
+                              <Pencil size={16} />
                             </Button>
                           </div>
-                        </DialogContent>
-                      </Dialog>
-                    )}
-                  </div>
-                </AnimatedTransition>
+                        ))
+                      ) : (
+                        <div className="col-span-full">
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
+                            <p className="text-gray-600 mb-4">You haven't created any doctor profiles yet.</p>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button className="bg-health-600 hover:bg-health-700">
+                                  <Plus size={16} className="mr-2" />
+                                  Create Doctor Profile
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Create Doctor Profile</DialogTitle>
+                                  <DialogDescription>
+                                    To create a doctor profile, you'll need to provide professional details.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4">
+                                  <Button 
+                                    className="w-full bg-health-600 hover:bg-health-700"
+                                    onClick={() => navigate('/doctors/create')}
+                                  >
+                                    Continue to Doctor Profile Creation
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {createdDoctorProfiles.length > 0 && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button className="col-span-full bg-health-600 hover:bg-health-700 mt-4">
+                              <Plus size={16} className="mr-2" />
+                              Create Another Doctor Profile
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Create Doctor Profile</DialogTitle>
+                              <DialogDescription>
+                                To create a doctor profile, you'll need to provide professional details.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                              <Button 
+                                className="w-full bg-health-600 hover:bg-health-700"
+                                onClick={() => navigate('/doctors/create')}
+                              >
+                                Continue to Doctor Profile Creation
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                  </AnimatedTransition>
+                  
+                  {/* Claimed doctor profiles section */}
+                  <AnimatedTransition animation="slide-up" className="mb-8">
+                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <User className="mr-2" size={18} />
+                      Your Claimed Doctor Profiles
+                    </h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {claimedDoctorProfiles.length > 0 ? (
+                        claimedDoctorProfiles.map((doctor, index) => (
+                          <div key={doctor.id} className="relative">
+                            <DoctorCard doctor={doctor} index={index} />
+                            <Button 
+                              variant="outline"
+                              className="absolute top-4 right-4 bg-white opacity-90 hover:opacity-100 p-2 h-auto"
+                              onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
+                            >
+                              <Pencil size={16} />
+                            </Button>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-full">
+                          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
+                            <p className="text-gray-600">You haven't claimed any doctor profiles yet.</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </AnimatedTransition>
+                </>
               )}
               
               {profile.user_type === 'patient' && (

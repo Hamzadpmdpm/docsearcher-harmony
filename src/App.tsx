@@ -1,41 +1,44 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import DoctorsList from "./pages/DoctorsList";
-import DoctorProfile from "./pages/DoctorProfile";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import CreateDoctorProfile from "./pages/CreateDoctorProfile";
-import NotFound from "./pages/NotFound";
+import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner';
 
-const queryClient = new QueryClient();
+// Contexts
+import { AuthProvider } from '@/contexts/AuthContext';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
+// Pages
+import Index from '@/pages/Index';
+import DoctorsList from '@/pages/DoctorsList';
+import DoctorProfile from '@/pages/DoctorProfile';
+import CreateDoctorProfile from './pages/CreateDoctorProfile';
+import EditDoctorProfile from './pages/EditDoctorProfile';
+import NotFound from '@/pages/NotFound';
+import Auth from '@/pages/Auth';
+import Profile from '@/pages/Profile';
+
+function App() {
+  const [queryClient] = useState(() => new QueryClient());
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
         <BrowserRouter>
+          <Toaster position="top-right" />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/doctors" element={<DoctorsList />} />
             <Route path="/doctors/:id" element={<DoctorProfile />} />
             <Route path="/doctors/create" element={<CreateDoctorProfile />} />
+            <Route path="/doctors/:id/edit" element={<EditDoctorProfile />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
