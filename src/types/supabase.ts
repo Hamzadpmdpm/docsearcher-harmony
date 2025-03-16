@@ -17,7 +17,7 @@ export interface SupabaseDoctor {
     email: string;
     address: string;
     city?: string;
-    state?: string;
+    wilaya?: string;
   };
   created_at: string;
   updated_at: string;

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Search, Award, UserCheck } from 'lucide-react';
 import Header from '@/components/Header';
-import SearchBar from '@/components/SearchBar';
+import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { specialties } from '@/data/doctors';
 import { cn } from '@/lib/utils';
@@ -11,8 +11,22 @@ import { cn } from '@/lib/utils';
 const Index = () => {
   const navigate = useNavigate();
   
-  const handleSearch = (query: string) => {
-    navigate(`/doctors?search=${encodeURIComponent(query)}`);
+  const handleSearch = (query: string, filters?: SearchFilters) => {
+    const params = new URLSearchParams();
+    
+    if (query) {
+      params.append('search', query);
+    }
+    
+    if (filters?.specialty) {
+      params.append('specialty', filters.specialty);
+    }
+    
+    if (filters?.wilaya) {
+      params.append('wilaya', filters.wilaya);
+    }
+    
+    navigate(`/doctors?${params.toString()}`);
   };
   
   const handleSpecialtyClick = (specialty: string) => {
@@ -35,7 +49,7 @@ const Index = () => {
                 Find the Right Doctor for Your Health Needs
               </h1>
               <p className="mt-6 text-xl text-gray-600">
-                Connect with top healthcare professionals specializing in various fields of medicine.
+                Connect with top healthcare professionals specializing in various fields of medicine in Algeria.
               </p>
             </div>
           </AnimatedTransition>
@@ -81,7 +95,7 @@ const Index = () => {
             <FeatureCard 
               icon={<Search className="text-health-600" size={24} />}
               title="Easy Search"
-              description="Find specialists by name, specialty, location, or availability with our powerful search."
+              description="Find specialists by name, specialty, location, or wilaya with our powerful search."
               delay={400}
             />
             <FeatureCard 
@@ -103,7 +117,7 @@ const Index = () => {
                 <div className="text-white mb-8 md:mb-0 md:mr-8">
                   <h2 className="text-3xl font-bold">Find Your Doctor Today</h2>
                   <p className="mt-4 text-health-100 max-w-xl">
-                    Browse our comprehensive directory of healthcare professionals and find the right specialist for your needs.
+                    Browse our comprehensive directory of healthcare professionals in Algeria and find the right specialist for your needs.
                   </p>
                 </div>
                 <button 
@@ -122,7 +136,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-10 px-6 bg-gray-50 mt-auto">
         <div className="max-w-7xl mx-auto text-center text-gray-500 text-sm">
-          &copy; {new Date().getFullYear()} HealthCare Directory. All rights reserved.
+          &copy; {new Date().getFullYear()} HealthCare Directory Algeria. All rights reserved.
         </div>
       </footer>
     </div>

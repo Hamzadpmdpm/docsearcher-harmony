@@ -1,12 +1,14 @@
 
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
   
   // Handle scroll effect for glass morphism header
   useEffect(() => {
@@ -42,6 +44,12 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           <Link to="/doctors" className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80 shadow-subtle hover:bg-white transition-colors duration-200">
             <Search size={18} className="text-health-700" />
+          </Link>
+          <Link 
+            to={user ? "/profile" : "/auth"} 
+            className="w-10 h-10 rounded-full flex items-center justify-center bg-white/80 shadow-subtle hover:bg-white transition-colors duration-200"
+          >
+            <User size={18} className="text-health-700" />
           </Link>
         </div>
       </div>

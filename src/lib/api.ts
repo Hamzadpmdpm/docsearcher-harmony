@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -302,6 +301,32 @@ export async function isVerifiedDoctor(doctorId: string): Promise<boolean> {
     return !!data;
   } catch (error) {
     console.error('Error in isVerifiedDoctor:', error);
+    return false;
+  }
+}
+
+export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boolean> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    const { data, error } = await supabase
+      .from('doctor_verifications')
+      .insert({
+        doctor_id: doctorId,
+        user_id: user.id,
+        verified: true
+      })
+      .select();
+    
+    if (error) throw error;
+    
+    return true;
+  } catch (error) {
+    console.error('Error verifying doctor:', error);
     return false;
   }
 }
