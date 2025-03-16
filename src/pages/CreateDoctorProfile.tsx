@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getSpecialties, createDoctor } from '@/lib/api';
+import { getSpecialties, createDoctor, getDoctors } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,6 +40,8 @@ const CreateDoctorProfile = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const [hasExistingProfile, setHasExistingProfile] = useState(false);
   const [subspecialties, setSubspecialties] = useState<string[]>(['']);
   const [education, setEducation] = useState<string[]>(['']);
   const [languages, setLanguages] = useState<string[]>(['English']);
@@ -49,6 +50,26 @@ const CreateDoctorProfile = () => {
     queryKey: ['specialties'],
     queryFn: getSpecialties
   });
+  
+  useEffect(() => {
+    const checkExistingProfile = async () => {
+      if (user) {
+        try {
+          const doctors = await getDoctors();
+          const userDoctors = doctors.filter(doctor => doctor.created_by_user_id === user.id);
+          setHasExistingProfile(userDoctors.length > 0);
+        } catch (error) {
+          console.error('Error checking existing profiles:', error);
+        } finally {
+          setIsCheckingProfile(false);
+        }
+      } else {
+        setIsCheckingProfile(false);
+      }
+    };
+    
+    checkExistingProfile();
+  }, [user]);
   
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorSchema),
@@ -70,10 +91,59 @@ const CreateDoctorProfile = () => {
     }
   });
   
-  // If user is not logged in or not a doctor, redirect to login
   if (!user || (profile && profile.user_type !== 'doctor')) {
     navigate('/auth');
     return null;
+  }
+  
+  if (isCheckingProfile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-grow pt-24 pb-16 px-6">
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-subtle p-8 flex items-center justify-center">
+              <div className="animate-pulse text-center">
+                <div className="h-8 w-48 bg-gray-200 rounded mb-4 mx-auto"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded mx-auto"></div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+  
+  if (hasExistingProfile) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Header />
+        <main className="flex-grow pt-24 pb-16 px-6">
+          <div className="max-w-3xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-subtle p-8 text-center">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Limit Reached</h2>
+              <p className="text-gray-600 mb-6">
+                You have already created a doctor profile. Each doctor can only create one profile.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button 
+                  onClick={() => navigate('/profile')}
+                  className="bg-health-600 hover:bg-health-700"
+                >
+                  Go to My Profile
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/doctors')}
+                >
+                  Browse Doctors
+                </Button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
   }
   
   const addSubspecialty = () => {
@@ -133,18 +203,16 @@ const CreateDoctorProfile = () => {
     setIsSubmitting(true);
     
     try {
-      // Filter out empty strings
       const filteredSubspecialties = subspecialties.filter(item => item.trim() !== '');
       const filteredEducation = education.filter(item => item.trim() !== '');
       const filteredLanguages = languages.filter(item => item.trim() !== '');
       
-      // Create doctor profile data
       const doctorData = {
         name: values.name,
         specialty: values.specialty,
         subspecialties: filteredSubspecialties.length > 0 ? filteredSubspecialties : null,
         hospital: values.hospital,
-        rating: 0, // Will be updated by ratings
+        rating: 0,
         experience: values.experience,
         education: filteredEducation,
         bio: values.bio,
@@ -157,19 +225,14 @@ const CreateDoctorProfile = () => {
           city: values.city,
           state: values.state,
         },
-        image: '/placeholder.svg', // Default image
+        image: '/placeholder.svg',
         created_by_user_id: user.id,
       };
       
       const doctorId = await createDoctor(doctorData);
       
       if (doctorId) {
-        // Create verification request
-        await supabase
-          .from('doctor_verifications')
-          .insert([{ doctor_id: doctorId, user_id: user.id }]);
-        
-        // Redirect to the new doctor profile
+        await verifyDoctorByCurrentUser(doctorId);
         navigate(`/doctors/${doctorId}`);
       }
     } catch (error) {

@@ -1,12 +1,13 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDoctorVerification, requestDoctorVerification } from '@/lib/api';
+import { getDoctorVerification, verifyDoctorByCurrentUser } from '@/lib/api';
 import { BadgeCheck, Info, User, Shield, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SupabaseDoctor } from '@/types/supabase';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface DoctorVerificationBadgeProps {
   doctorId: string;
@@ -39,12 +40,22 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
     checkVerificationStatus();
   }, [doctorId, user, doctor]);
   
-  const handleVerificationRequest = async () => {
+  const handleClaimProfile = async () => {
     if (!user) return;
     
-    await requestDoctorVerification(doctorId);
-    setHasRequestedVerification(true);
-    setIsDialogOpen(false);
+    try {
+      const result = await verifyDoctorByCurrentUser(doctorId);
+      if (result) {
+        setIsVerified(true);
+        toast.success("Profile successfully claimed");
+        setIsClaimDialogOpen(false);
+      } else {
+        toast.error("Failed to claim profile");
+      }
+    } catch (error) {
+      console.error("Error claiming profile:", error);
+      toast.error("Failed to claim profile");
+    }
   };
   
   // If user created this doctor profile, show verified badge
@@ -79,15 +90,15 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Verify Your Doctor Profile</DialogTitle>
+            <DialogTitle>Claim Your Doctor Profile</DialogTitle>
             <DialogDescription>
-              Is this your professional profile? You can request verification to claim this profile.
+              Is this your professional profile? You can claim this profile to verify your identity.
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-6 space-y-4">
             <p className="text-sm text-gray-700">
-              By verifying this profile, you confirm that you are {doctor.name} and that the information presented is accurate.
+              By claiming this profile, you confirm that you are {doctor.name} and that the information presented is accurate.
             </p>
             
             <div className="flex justify-end gap-2">
@@ -98,10 +109,10 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
                 Cancel
               </Button>
               <Button
-                onClick={handleVerificationRequest}
+                onClick={handleClaimProfile}
                 className="bg-health-600 hover:bg-health-700"
               >
-                Request Verification
+                Claim Profile
               </Button>
             </div>
           </div>
@@ -153,7 +164,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
               <>
                 {profile?.user_type === 'doctor' ? (
                   <Button
-                    onClick={handleVerificationRequest}
+                    onClick={handleClaimProfile}
                     className="bg-health-600 hover:bg-health-700"
                   >
                     <Shield className="mr-2" size={16} />

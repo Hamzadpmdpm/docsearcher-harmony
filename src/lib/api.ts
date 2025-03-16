@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -25,12 +24,10 @@ export async function getDoctors(options: {
       );
     }
     
-    // Add city filter if provided
     if (options.city && options.city.trim() !== '') {
       query = query.ilike('contact->>city', `%${options.city}%`);
     }
     
-    // Add state filter if provided
     if (options.state && options.state.trim() !== '') {
       query = query.ilike('contact->>state', `%${options.state}%`);
     }
@@ -113,7 +110,7 @@ export async function getDoctorVerification(doctorId: string, userId: string): P
   }
 }
 
-// Request verification for a doctor
+// Request verification for a doctor - deprecated, but kept for backward compatibility
 export async function requestDoctorVerification(doctorId: string): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -143,6 +140,60 @@ export async function requestDoctorVerification(doctorId: string): Promise<boole
   } catch (error) {
     console.error('Error in requestDoctorVerification:', error);
     toast.error('Failed to request verification');
+    return false;
+  }
+}
+
+// Verify doctor by current user (claim profile)
+export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boolean> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session || !session.user) {
+      toast.error('You must be logged in to claim a profile');
+      return false;
+    }
+    
+    const userId = session.user.id;
+    
+    // Check if the user has already verified/claimed another doctor profile
+    const { data: existingVerifications, error: checkError } = await supabase
+      .from('doctor_verifications')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('verified', true);
+    
+    if (checkError) {
+      console.error('Error checking existing verifications:', checkError);
+      toast.error('Failed to verify doctor status');
+      return false;
+    }
+    
+    if (existingVerifications && existingVerifications.length > 0) {
+      toast.error('You have already verified another doctor profile');
+      return false;
+    }
+    
+    // Proceed with verification
+    const { error } = await supabase
+      .from('doctor_verifications')
+      .insert({
+        doctor_id: doctorId,
+        user_id: userId,
+        verified: true
+      });
+    
+    if (error) {
+      console.error('Error verifying doctor:', error);
+      toast.error('Failed to claim profile');
+      return false;
+    }
+    
+    toast.success('Profile successfully claimed');
+    return true;
+  } catch (error) {
+    console.error('Error in verifyDoctorByCurrentUser:', error);
+    toast.error('Failed to claim profile');
     return false;
   }
 }
@@ -232,9 +283,35 @@ export async function rateDoctor(doctorId: string, userId: string, rating: numbe
 // Create a doctor profile
 export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'created_at' | 'updated_at'>): Promise<string | null> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session || !session.user) {
+      toast.error('You must be logged in to create a doctor profile');
+      return null;
+    }
+    
+    const userId = session.user.id;
+    
+    // Check if user has already created a doctor profile
+    const { data: existingDoctors, error: checkError } = await supabase
+      .from('doctors')
+      .select('id')
+      .eq('created_by_user_id', userId);
+    
+    if (checkError) {
+      console.error('Error checking existing profiles:', checkError);
+      toast.error('Failed to create doctor profile');
+      return null;
+    }
+    
+    if (existingDoctors && existingDoctors.length > 0) {
+      toast.error('You have already created a doctor profile');
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('doctors')
-      .insert([doctorData])
+      .insert([{...doctorData, created_by_user_id: userId}])
       .select();
     
     if (error) {
@@ -314,32 +391,6 @@ export async function isVerifiedDoctor(doctorId: string): Promise<boolean> {
     return !!data;
   } catch (error) {
     console.error('Error in isVerifiedDoctor:', error);
-    return false;
-  }
-}
-
-export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boolean> {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-    
-    const { data, error } = await supabase
-      .from('doctor_verifications')
-      .insert({
-        doctor_id: doctorId,
-        user_id: user.id,
-        verified: true
-      })
-      .select();
-    
-    if (error) throw error;
-    
-    return true;
-  } catch (error) {
-    console.error('Error verifying doctor:', error);
     return false;
   }
 }
