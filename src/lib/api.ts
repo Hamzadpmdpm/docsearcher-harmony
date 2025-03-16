@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -115,9 +116,21 @@ export async function getDoctorVerification(doctorId: string, userId: string): P
 // Request verification for a doctor
 export async function requestDoctorVerification(doctorId: string): Promise<boolean> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session || !session.user) {
+      toast.error('You must be logged in to request verification');
+      return false;
+    }
+    
+    const userId = session.user.id;
+    
     const { error } = await supabase
       .from('doctor_verifications')
-      .insert([{ doctor_id: doctorId, user_id: supabase.auth.getSession().then(({ data }) => data.session?.user.id) }]);
+      .insert({ 
+        doctor_id: doctorId, 
+        user_id: userId 
+      });
     
     if (error) {
       console.error('Error requesting doctor verification:', error);

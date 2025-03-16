@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock } from 'lucide-react';
@@ -44,7 +43,6 @@ const DoctorProfile = () => {
 
   const handleCallNow = () => {
     if (doctor?.contact?.phone) {
-      // Using tel: protocol to initiate a call
       window.location.href = `tel:${doctor.contact.phone}`;
       toast.success(`Calling ${doctor.name}...`);
     } else {
@@ -53,10 +51,8 @@ const DoctorProfile = () => {
   };
 
   const handleRatingSubmitted = () => {
-    // Refetch doctor to get updated rating
     refetch();
     
-    // Refetch ratings
     if (id) {
       getDoctorRatings(id).then(ratings => setRatings(ratings));
     }
@@ -263,10 +259,10 @@ const DoctorProfile = () => {
                           <MapPin size={18} className="text-health-600 mt-1 mr-3 flex-shrink-0" />
                           <div>
                             <span className="text-gray-700 block">{doctor.contact.address}</span>
-                            {(doctor.contact.city || doctor.contact.state) && (
+                            {(doctor.contact.city || doctor.contact.wilaya) && (
                               <span className="text-gray-700">
-                                {doctor.contact.city}{doctor.contact.city && doctor.contact.state ? ', ' : ''}
-                                {doctor.contact.state}
+                                {doctor.contact.city}{doctor.contact.city && doctor.contact.wilaya ? ', ' : ''}
+                                {doctor.contact.wilaya}
                               </span>
                             )}
                           </div>
