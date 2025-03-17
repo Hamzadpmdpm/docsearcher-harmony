@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -8,6 +7,7 @@ export async function getDoctors(options: {
   searchQuery?: string;
   city?: string;
   state?: string;
+  wilaya?: string | null;
 } = {}): Promise<SupabaseDoctor[]> {
   try {
     let query = supabase
@@ -31,6 +31,10 @@ export async function getDoctors(options: {
     
     if (options.state && options.state.trim() !== '') {
       query = query.ilike('contact->>state', `%${options.state}%`);
+    }
+    
+    if (options.wilaya && options.wilaya.trim() !== '') {
+      query = query.ilike('contact->>wilaya', `%${options.wilaya}%`);
     }
     
     const { data, error } = await query;
@@ -89,7 +93,6 @@ export async function getDoctorById(id: string): Promise<SupabaseDoctor | null> 
   }
 }
 
-// Get verification status of a doctor
 export async function getDoctorVerification(doctorId: string, userId: string): Promise<DoctorVerification | null> {
   try {
     const { data, error } = await supabase
@@ -111,7 +114,6 @@ export async function getDoctorVerification(doctorId: string, userId: string): P
   }
 }
 
-// Request verification for a doctor - deprecated, but kept for backward compatibility
 export async function requestDoctorVerification(doctorId: string): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -145,7 +147,6 @@ export async function requestDoctorVerification(doctorId: string): Promise<boole
   }
 }
 
-// Verify doctor by current user (claim profile)
 export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -157,7 +158,6 @@ export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boole
     
     const userId = session.user.id;
     
-    // Check if the user has already verified/claimed another doctor profile
     const { data: existingVerifications, error: checkError } = await supabase
       .from('doctor_verifications')
       .select('*')
@@ -175,7 +175,6 @@ export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boole
       return false;
     }
     
-    // Proceed with verification
     const { error } = await supabase
       .from('doctor_verifications')
       .insert({
@@ -199,10 +198,8 @@ export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boole
   }
 }
 
-// Get doctor profiles claimed by a user
 export async function getDoctorProfilesByUserId(userId: string): Promise<SupabaseDoctor[]> {
   try {
-    // Get verified doctor IDs for this user
     const { data: verifications, error: verificationError } = await supabase
       .from('doctor_verifications')
       .select('doctor_id')
@@ -214,12 +211,10 @@ export async function getDoctorProfilesByUserId(userId: string): Promise<Supabas
       return [];
     }
     
-    // If no verifications, return empty array
     if (!verifications || verifications.length === 0) {
       return [];
     }
     
-    // Get doctor profiles matching these IDs
     const doctorIds = verifications.map(v => v.doctor_id);
     const { data: doctors, error: doctorsError } = await supabase
       .from('doctors')
@@ -238,7 +233,6 @@ export async function getDoctorProfilesByUserId(userId: string): Promise<Supabas
   }
 }
 
-// Get ratings for a doctor
 export async function getDoctorRatings(doctorId: string): Promise<DoctorRating[]> {
   try {
     const { data, error } = await supabase
@@ -258,7 +252,6 @@ export async function getDoctorRatings(doctorId: string): Promise<DoctorRating[]
   }
 }
 
-// Get user's rating for a doctor
 export async function getUserRating(doctorId: string, userId: string): Promise<DoctorRating | null> {
   try {
     const { data, error } = await supabase
@@ -280,14 +273,11 @@ export async function getUserRating(doctorId: string, userId: string): Promise<D
   }
 }
 
-// Add or update a rating
 export async function rateDoctor(doctorId: string, userId: string, rating: number, comment?: string): Promise<boolean> {
   try {
-    // Check if user has already rated this doctor
     const existingRating = await getUserRating(doctorId, userId);
     
     if (existingRating) {
-      // Update existing rating
       const { error } = await supabase
         .from('doctor_ratings')
         .update({ rating, comment })
@@ -299,7 +289,6 @@ export async function rateDoctor(doctorId: string, userId: string, rating: numbe
         return false;
       }
     } else {
-      // Create new rating
       const { error } = await supabase
         .from('doctor_ratings')
         .insert([{ doctor_id: doctorId, user_id: userId, rating, comment }]);
@@ -320,7 +309,6 @@ export async function rateDoctor(doctorId: string, userId: string, rating: numbe
   }
 }
 
-// Create a doctor profile
 export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'created_at' | 'updated_at'>): Promise<string | null> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -332,7 +320,6 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
     
     const userId = session.user.id;
     
-    // Check if user has already created a doctor profile
     const { data: existingDoctors, error: checkError } = await supabase
       .from('doctors')
       .select('id')
@@ -369,7 +356,6 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
   }
 }
 
-// Update a doctor profile
 export async function updateDoctor(id: string, doctorData: Partial<SupabaseDoctor>): Promise<boolean> {
   try {
     const { error } = await supabase
@@ -392,7 +378,6 @@ export async function updateDoctor(id: string, doctorData: Partial<SupabaseDocto
   }
 }
 
-// Get profile by user ID
 export async function getProfileById(userId: string): Promise<Profile | null> {
   try {
     const { data, error } = await supabase
@@ -413,7 +398,6 @@ export async function getProfileById(userId: string): Promise<Profile | null> {
   }
 }
 
-// Check if a doctor is verified
 export async function isVerifiedDoctor(doctorId: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
