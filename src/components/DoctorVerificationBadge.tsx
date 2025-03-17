@@ -77,7 +77,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
   // If doctor profile is verified or created by a doctor, show verified badge to all users
   if (isVerified || (doctor.created_by_user_id && isUserTheDoctor)) {
     return (
-      <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm">
+      <div className="flex items-center text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-sm">
         <BadgeCheck size={16} className="mr-1" />
         <span>Verified Doctor</span>
       </div>
@@ -131,7 +131,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
   return (
     <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
       <DialogTrigger asChild>
-        <button className="flex items-center text-amber-600 bg-amber-50 px-3 py-1 rounded-full text-sm hover:bg-amber-100 transition-colors">
+        <button className="flex items-center text-gray-500 bg-gray-100 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">
           <ShieldQuestion size={16} className="mr-1" />
           <span>Unverified Profile</span>
         </button>

@@ -1,13 +1,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, XCircle } from 'lucide-react';
 import Header from '@/components/Header';
 import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import DoctorCard from '@/components/DoctorCard';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { getDoctors } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
 
 const DoctorsList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,6 +76,15 @@ const DoctorsList = () => {
     );
   };
   
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedSpecialty(null);
+    setSelectedWilaya(null);
+    setCityFilter('');
+    setStateFilter('');
+    setSearchParams(new URLSearchParams());
+  };
+  
   const updateSearchParams = (
     search: string, 
     specialty: string | null, 
@@ -106,6 +116,8 @@ const DoctorsList = () => {
     
     setSearchParams(newParams);
   };
+
+  const hasActiveFilters = searchQuery || selectedSpecialty || selectedWilaya || cityFilter || stateFilter;
   
   return (
     <div className="min-h-screen flex flex-col">
@@ -113,11 +125,11 @@ const DoctorsList = () => {
       
       <main className="flex-grow pt-24 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <AnimatedTransition className="mb-8">
+          <AnimatedTransition className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-900">Doctor Directory</h1>
           </AnimatedTransition>
           
-          <div className="mb-8">
+          <div className="mb-8 max-w-3xl mx-auto">
             <SearchBar 
               onSearch={handleSearch} 
               placeholder="Search doctors by name, specialty or hospital..." 
@@ -127,6 +139,20 @@ const DoctorsList = () => {
                 wilaya: selectedWilaya
               }}
             />
+            
+            {hasActiveFilters && (
+              <div className="mt-2 flex justify-end">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-gray-600 flex items-center gap-1"
+                >
+                  <XCircle size={14} />
+                  Clear filters
+                </Button>
+              </div>
+            )}
           </div>
           
           <div className="mb-4 flex justify-between items-center">

@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseDoctor } from '@/types/supabase';
+import DoctorVerificationBadge from './DoctorVerificationBadge';
 
 interface DoctorCardProps {
   doctor: SupabaseDoctor;
@@ -12,6 +13,17 @@ interface DoctorCardProps {
 
 const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  
+  // Format the address in the correct way
+  const formatAddress = (contact: any) => {
+    if (typeof contact.address === 'string') {
+      const parts = contact.address.split('_');
+      if (parts.length >= 1) {
+        return parts[0];
+      }
+    }
+    return contact.address || '';
+  };
   
   return (
     <Link 
@@ -46,10 +58,11 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
               </div>
             </div>
             
-            <div className="mt-1">
+            <div className="mt-1 flex items-center gap-2">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-health-50 text-health-700">
                 {doctor.specialty}
               </span>
+              <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} />
             </div>
             
             <div className="mt-3 flex items-center text-sm text-gray-500">

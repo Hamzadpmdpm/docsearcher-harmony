@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,9 @@ import DoctorCard from '@/components/DoctorCard';
 import { Button } from '@/components/ui/button';
 import { User, UserCog, Heart, StarIcon, LogOut, Plus, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import DoctorVerificationBadge from '@/components/DoctorVerificationBadge';
 
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
@@ -216,20 +220,46 @@ const Profile = () => {
                       Your Claimed Doctor Profiles
                     </h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
                       {claimedDoctorProfiles.length > 0 ? (
                         claimedDoctorProfiles.map((doctor, index) => (
-                          <div key={doctor.id} className="relative">
-                            <DoctorCard doctor={doctor} index={index} />
-                            <Button 
-                              variant="default"
-                              className="absolute bottom-4 right-4 bg-health-600 hover:bg-health-700 text-white p-2 h-auto"
-                              onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
-                            >
-                              <Pencil size={16} className="mr-1" />
-                              Edit Profile
-                            </Button>
-                          </div>
+                          <Card key={doctor.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                            <div className="flex flex-col md:flex-row">
+                              <div className="w-full md:w-48 h-40 md:h-auto bg-health-50">
+                                <img 
+                                  src={doctor.image} 
+                                  alt={doctor.name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 p-6">
+                                <div className="flex flex-wrap justify-between items-start mb-2">
+                                  <div>
+                                    <h3 className="text-xl font-semibold text-gray-900">{doctor.name}</h3>
+                                    <div className="mt-1 flex items-start flex-wrap gap-2">
+                                      <Badge variant="secondary" className="bg-health-50 text-health-700">
+                                        {doctor.specialty}
+                                      </Badge>
+                                      <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} />
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <p className="text-gray-600 mb-4 line-clamp-2">{doctor.bio}</p>
+                                
+                                <div className="mt-4 flex justify-end">
+                                  <Button
+                                    variant="default"
+                                    onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
+                                    className="bg-health-600 hover:bg-health-700"
+                                  >
+                                    <Pencil size={16} className="mr-2" />
+                                    Edit Profile
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
                         ))
                       ) : (
                         <div className="col-span-full">

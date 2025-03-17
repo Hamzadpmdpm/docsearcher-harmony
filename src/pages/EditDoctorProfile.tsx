@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { ArrowLeft, Save, X, Check, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { wilayas } from '@/data/wilaya';
 import { 
@@ -28,7 +28,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { Check } from 'lucide-react';
 
 const doctorFormSchema = z.object({
   prefix: z.enum(["Dr", "Pr"]),
@@ -61,6 +60,8 @@ const EditDoctorProfile = () => {
   const [hasPermission, setHasPermission] = useState(false);
   const [specialtyOpen, setSpecialtyOpen] = useState(false);
   const [wilayaOpen, setWilayaOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
 
   // Fetch specialties
   const { data: specialties = [] } = useQuery({
@@ -143,11 +144,30 @@ const EditDoctorProfile = () => {
         setValue('education', doctorData.education.join('\n'));
         setValue('accepting_new_patients', doctorData.accepting_new_patients);
         setValue('image', doctorData.image);
+        setImagePreview(doctorData.image);
         setValue('contactPhone', doctorData.contact.phone);
         setValue('contactEmail', doctorData.contact.email);
-        setValue('contactAddress', doctorData.contact.address);
-        setValue('contactCity', doctorData.contact.city || '');
-        setValue('contactWilaya', doctorData.contact.wilaya || '');
+        
+        // Parse address if it follows the [Address]_[City]_[Wilaya] format
+        if (typeof doctorData.contact.address === 'string') {
+          const addressParts = doctorData.contact.address.split('_');
+          
+          if (addressParts.length >= 1) {
+            setValue('contactAddress', addressParts[0]);
+          }
+          
+          if (addressParts.length >= 2) {
+            setValue('contactCity', addressParts[1]);
+          }
+          
+          if (addressParts.length >= 3) {
+            setValue('contactWilaya', addressParts[2]);
+          }
+        } else {
+          setValue('contactAddress', '');
+          setValue('contactCity', '');
+          setValue('contactWilaya', '');
+        }
 
         setIsLoading(false);
       } catch (error) {
@@ -159,6 +179,26 @@ const EditDoctorProfile = () => {
 
     checkPermissions();
   }, [id, user, navigate, setValue, specialties]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setImagePreview(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+      
+      // For now, we'll just set the image value to the file name
+      // In a real app, you'd upload this to storage and get a URL
+      setValue('image', URL.createObjectURL(file));
+    }
+  };
 
   const onSubmit = async (data: DoctorFormValues) => {
     if (!id) return;
@@ -501,12 +541,41 @@ const EditDoctorProfile = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="image">Profile Image URL</Label>
-                    <Input 
-                      id="image" 
-                      {...register('image')} 
-                      placeholder="Image URL" 
-                    />
+                    <Label htmlFor="image">Profile Image</Label>
+                    <div className="mt-1 flex items-center space-x-4">
+                      <div className="w-24 h-24 border rounded-full overflow-hidden bg-gray-50">
+                        {imagePreview ? (
+                          <img 
+                            src={imagePreview} 
+                            alt="Profile preview" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                            <Upload size={24} className="text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <Label 
+                          htmlFor="image-upload" 
+                          className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none cursor-pointer"
+                        >
+                          <Upload size={16} className="mr-2" />
+                          Upload Image
+                        </Label>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={handleImageChange}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          JPG, PNG or GIF, Max 2MB
+                        </p>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="flex items-center space-x-2">
