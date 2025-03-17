@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, XCircle } from 'lucide-react';
+import { Star, MapPin, CheckCircle, XCircle, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseDoctor } from '@/types/supabase';
 import DoctorVerificationBadge from './DoctorVerificationBadge';
@@ -62,7 +62,7 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-health-50 text-health-700">
                 {doctor.specialty}
               </span>
-              <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} />
+              <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} iconOnly={true} />
             </div>
             
             <div className="mt-3 flex items-center text-sm text-gray-500">
