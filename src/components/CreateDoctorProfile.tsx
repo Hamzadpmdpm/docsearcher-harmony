@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { verifyDoctorByCurrentUser } from '@/lib/api';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Create doctor profile component
 export default function CreateDoctorProfile() {
@@ -10,8 +10,21 @@ export default function CreateDoctorProfile() {
   const { user } = useAuth();
 
   // Function to handle redirection to the main create doctor page
-  const handleRedirect = () => {
-    window.location.href = '/doctors/create';
+  const handleRedirect = async () => {
+    setIsLoading(true);
+    try {
+      if (!user) {
+        toast.error('You must be logged in to create a doctor profile');
+        return;
+      }
+      
+      window.location.href = '/doctors/create';
+    } catch (error) {
+      console.error('Error creating doctor profile:', error);
+      toast.error('Failed to verify doctor profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

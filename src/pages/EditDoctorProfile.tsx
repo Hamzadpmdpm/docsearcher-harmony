@@ -14,10 +14,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Slider } from "@/components/ui/slider"; 
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { wilayas } from '@/data/wilaya';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 
 const doctorFormSchema = z.object({
   prefix: z.enum(["Dr", "Pr"]),
@@ -37,7 +48,6 @@ const doctorFormSchema = z.object({
   contactAddress: z.string().min(1, "Address is required"),
   contactCity: z.string().optional(),
   contactWilaya: z.string().optional(),
-  wilayaIndex: z.number().default(0),
 });
 
 type DoctorFormValues = z.infer<typeof doctorFormSchema>;
@@ -49,9 +59,8 @@ const EditDoctorProfile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [doctor, setDoctor] = useState<SupabaseDoctor | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
-  const [specialtyIndex, setSpecialtyIndex] = useState(0);
-  const [genderIndex, setGenderIndex] = useState(0);
-  const [prefixIndex, setPrefixIndex] = useState(0);
+  const [specialtyOpen, setSpecialtyOpen] = useState(false);
+  const [wilayaOpen, setWilayaOpen] = useState(false);
 
   // Fetch specialties
   const { data: specialties = [] } = useQuery({
@@ -66,27 +75,13 @@ const EditDoctorProfile = () => {
       prefix: "Dr",
       gender: "Male",
       accepting_new_patients: true,
-      wilayaIndex: 0,
     }
   });
 
-  const selectedWilayaIndex = watch('wilayaIndex');
-  const selectedSpecialtyValue = specialties[specialtyIndex] || '';
-  const selectedWilayaValue = wilayas[selectedWilayaIndex] || '';
-
-  useEffect(() => {
-    // Update the form when specialty index changes
-    if (specialties.length > 0) {
-      setValue('specialty', specialties[specialtyIndex]);
-    }
-  }, [specialtyIndex, specialties, setValue]);
-
-  useEffect(() => {
-    // Update the form when wilaya index changes
-    if (wilayas.length > 0) {
-      setValue('contactWilaya', wilayas[selectedWilayaIndex]);
-    }
-  }, [selectedWilayaIndex, setValue]);
+  const watchedPrefix = watch('prefix');
+  const watchedGender = watch('gender');
+  const watchedSpecialty = watch('specialty');
+  const watchedWilaya = watch('contactWilaya');
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -134,30 +129,9 @@ const EditDoctorProfile = () => {
           name = doctorData.name.substring(4);
         }
         
-        // Set initial prefix index
-        setPrefixIndex(prefix === "Dr" ? 0 : 1);
         setValue('prefix', prefix as "Dr" | "Pr");
+        setValue('gender', "Male"); // Default - you may need to extract this from profile data
         
-        // Set default gender (you may need to extract this from existing data)
-        setGenderIndex(0);
-        setValue('gender', "Male");
-        
-        // Find specialty index
-        if (specialties.length > 0) {
-          const index = specialties.findIndex(s => s === doctorData.specialty);
-          if (index >= 0) {
-            setSpecialtyIndex(index);
-          }
-        }
-        
-        // Find wilaya index
-        if (doctorData.contact.wilaya) {
-          const index = wilayas.findIndex(w => w === doctorData.contact.wilaya);
-          if (index >= 0) {
-            setValue('wilayaIndex', index);
-          }
-        }
-
         // Populate form with existing data
         setValue('name', name);
         setValue('specialty', doctorData.specialty);
@@ -192,6 +166,13 @@ const EditDoctorProfile = () => {
     try {
       const formattedName = `${data.prefix}. ${data.name}`;
       
+      // Format address as requested: [Address]_[City]_[Wilaya]
+      const formattedAddress = [
+        data.contactAddress,
+        data.contactCity,
+        data.contactWilaya
+      ].filter(Boolean).join('_');
+      
       const updatedDoctor: Partial<SupabaseDoctor> = {
         name: formattedName,
         specialty: data.specialty,
@@ -206,7 +187,7 @@ const EditDoctorProfile = () => {
         contact: {
           phone: data.contactPhone,
           email: data.contactEmail,
-          address: data.contactAddress,
+          address: formattedAddress,
           city: data.contactCity,
           wilaya: data.contactWilaya,
         }
@@ -279,47 +260,35 @@ const EditDoctorProfile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="prefixSlider">Doctor Title</Label>
-                    <div className="mt-2">
-                      <div className="flex justify-between text-sm text-gray-500 mb-2">
-                        <span className={prefixIndex === 0 ? "font-medium text-health-600" : ""}>Dr</span>
-                        <span className={prefixIndex === 1 ? "font-medium text-health-600" : ""}>Pr</span>
-                      </div>
-                      <Slider
-                        id="prefixSlider"
-                        max={1}
-                        step={1}
-                        value={[prefixIndex]}
-                        onValueChange={(values) => {
-                          const newIndex = values[0];
-                          setPrefixIndex(newIndex);
-                          setValue('prefix', newIndex === 0 ? "Dr" : "Pr");
-                        }}
-                        className="mb-2"
-                      />
-                    </div>
+                    <Label htmlFor="prefix">Doctor Title</Label>
+                    <Select 
+                      onValueChange={(value) => setValue('prefix', value as "Dr" | "Pr")}
+                      value={watchedPrefix}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select title" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dr">Dr</SelectItem>
+                        <SelectItem value="Pr">Pr</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
-                    <Label htmlFor="genderSlider">Gender</Label>
-                    <div className="mt-2">
-                      <div className="flex justify-between text-sm text-gray-500 mb-2">
-                        <span className={genderIndex === 0 ? "font-medium text-health-600" : ""}>Male</span>
-                        <span className={genderIndex === 1 ? "font-medium text-health-600" : ""}>Female</span>
-                      </div>
-                      <Slider
-                        id="genderSlider"
-                        max={1}
-                        step={1}
-                        value={[genderIndex]}
-                        onValueChange={(values) => {
-                          const newIndex = values[0];
-                          setGenderIndex(newIndex);
-                          setValue('gender', newIndex === 0 ? "Male" : "Female");
-                        }}
-                        className="mb-2"
-                      />
-                    </div>
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select 
+                      onValueChange={(value) => setValue('gender', value as "Male" | "Female")}
+                      value={watchedGender}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
@@ -333,30 +302,62 @@ const EditDoctorProfile = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="specialtySlider">Specialty</Label>
-                    <div className="mt-2">
-                      <div className="text-sm font-medium text-health-600 mb-2">
-                        {selectedSpecialtyValue}
-                      </div>
-                      {specialties.length > 0 && (
-                        <Slider
-                          id="specialtySlider"
-                          max={specialties.length - 1}
-                          step={1}
-                          value={[specialtyIndex]}
-                          onValueChange={(values) => {
-                            const newIndex = values[0];
-                            setSpecialtyIndex(newIndex);
-                            setValue('specialty', specialties[newIndex]);
-                          }}
-                          className="mb-2"
-                        />
-                      )}
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>{specialties[0]}</span>
-                        {specialties.length > 1 && <span>{specialties[specialties.length - 1]}</span>}
-                      </div>
-                    </div>
+                    <Label htmlFor="specialty">Specialty</Label>
+                    <Popover open={specialtyOpen} onOpenChange={setSpecialtyOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={specialtyOpen}
+                          className="w-full justify-between font-normal"
+                        >
+                          {watchedSpecialty
+                            ? specialties.find((specialty) => specialty === watchedSpecialty)
+                            : "Select specialty..."}
+                          <X
+                            className={cn(
+                              "ml-2 h-4 w-4 shrink-0 opacity-50",
+                              !watchedSpecialty && "hidden"
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue('specialty', '');
+                            }}
+                          />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search specialty..." />
+                          <CommandEmpty>No specialty found.</CommandEmpty>
+                          <CommandGroup>
+                            <ScrollArea className="h-72">
+                              {specialties.map((specialty) => (
+                                <CommandItem
+                                  key={specialty}
+                                  value={specialty}
+                                  onSelect={() => {
+                                    setValue('specialty', specialty);
+                                    setSpecialtyOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      watchedSpecialty === specialty
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {specialty}
+                                </CommandItem>
+                              ))}
+                            </ScrollArea>
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty.message}</p>}
                   </div>
                   
                   <div>
@@ -442,28 +443,61 @@ const EditDoctorProfile = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="wilayaSlider">Wilaya</Label>
-                    <div className="mt-2">
-                      <div className="text-sm font-medium text-health-600 mb-2">
-                        {selectedWilayaValue}
-                      </div>
-                      <Slider
-                        id="wilayaSlider"
-                        max={wilayas.length - 1}
-                        step={1}
-                        value={[selectedWilayaIndex]}
-                        onValueChange={(values) => {
-                          const newIndex = values[0];
-                          setValue('wilayaIndex', newIndex);
-                          setValue('contactWilaya', wilayas[newIndex]);
-                        }}
-                        className="mb-2"
-                      />
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>{wilayas[0]}</span>
-                        <span>{wilayas[wilayas.length - 1]}</span>
-                      </div>
-                    </div>
+                    <Label htmlFor="wilaya">Wilaya</Label>
+                    <Popover open={wilayaOpen} onOpenChange={setWilayaOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={wilayaOpen}
+                          className="w-full justify-between font-normal"
+                        >
+                          {watchedWilaya
+                            ? wilayas.find((wilaya) => wilaya === watchedWilaya)
+                            : "Select wilaya..."}
+                          <X
+                            className={cn(
+                              "ml-2 h-4 w-4 shrink-0 opacity-50",
+                              !watchedWilaya && "hidden"
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setValue('contactWilaya', '');
+                            }}
+                          />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search wilaya..." />
+                          <CommandEmpty>No wilaya found.</CommandEmpty>
+                          <CommandGroup>
+                            <ScrollArea className="h-72">
+                              {wilayas.map((wilaya) => (
+                                <CommandItem
+                                  key={wilaya}
+                                  value={wilaya}
+                                  onSelect={() => {
+                                    setValue('contactWilaya', wilaya);
+                                    setWilayaOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      watchedWilaya === wilaya
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {wilaya}
+                                </CommandItem>
+                              ))}
+                            </ScrollArea>
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   
                   <div>

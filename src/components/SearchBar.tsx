@@ -1,9 +1,10 @@
 
 import { useState } from 'react';
-import { Search, Sliders } from 'lucide-react';
+import { Search, Sliders, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import SpecialtyFilter from './SpecialtyFilter';
 import WilayaFilter from './WilayaFilter';
+import { Badge } from '@/components/ui/badge';
 
 interface SearchBarProps {
   onSearch: (query: string, filters?: SearchFilters) => void;
@@ -44,6 +45,16 @@ const SearchBar = ({
       [key]: value
     }));
   };
+
+  const clearFilter = (key: keyof SearchFilters) => {
+    updateFilters(key, null);
+    onSearch(query, {
+      ...filters,
+      [key]: null
+    });
+  };
+
+  const hasActiveFilters = filters.specialty || filters.wilaya;
 
   return (
     <div className={cn(
@@ -95,6 +106,45 @@ const SearchBar = ({
         </div>
         <button type="submit" hidden>Search</button>
       </form>
+
+      {/* Active filters display */}
+      {hasActiveFilters && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {filters.specialty && (
+            <Badge variant="outline" className="flex items-center gap-1 px-3 py-1 bg-health-50 text-health-700 border-health-200">
+              Specialty: {filters.specialty}
+              <button
+                onClick={() => clearFilter('specialty')}
+                className="ml-1 text-health-700 hover:text-health-900"
+              >
+                <X size={14} />
+              </button>
+            </Badge>
+          )}
+          {filters.wilaya && (
+            <Badge variant="outline" className="flex items-center gap-1 px-3 py-1 bg-health-50 text-health-700 border-health-200">
+              Wilaya: {filters.wilaya}
+              <button
+                onClick={() => clearFilter('wilaya')}
+                className="ml-1 text-health-700 hover:text-health-900"
+              >
+                <X size={14} />
+              </button>
+            </Badge>
+          )}
+          {hasActiveFilters && (
+            <button
+              onClick={() => {
+                setFilters({ specialty: null, wilaya: null });
+                onSearch(query, { specialty: null, wilaya: null });
+              }}
+              className="text-sm text-health-600 hover:text-health-800 transition-colors"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      )}
 
       {showFilters && (
         <div className={cn(

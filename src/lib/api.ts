@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -83,6 +84,20 @@ export async function getDoctorById(id: string): Promise<SupabaseDoctor | null> 
       console.error('Error fetching doctor:', error);
       toast.error('Failed to load doctor details');
       return null;
+    }
+    
+    // Parse address if in the new format [Address]_[City]_[Wilaya]
+    if (data && data.contact && data.contact.address) {
+      const addressParts = data.contact.address.split('_');
+      if (addressParts.length >= 2) {
+        data.contact.address = addressParts[0] || '';
+        if (!data.contact.city) {
+          data.contact.city = addressParts[1] || '';
+        }
+        if (!data.contact.wilaya && addressParts.length >= 3) {
+          data.contact.wilaya = addressParts[2] || '';
+        }
+      }
     }
     
     return data as SupabaseDoctor;
@@ -336,9 +351,15 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
       return null;
     }
     
+    // Format address as [Address]_[City]_[Wilaya]
+    const contact = {...doctorData.contact};
+    if (contact.address && contact.city && contact.wilaya) {
+      contact.address = `${contact.address}_${contact.city}_${contact.wilaya}`;
+    }
+    
     const { data, error } = await supabase
       .from('doctors')
-      .insert([{...doctorData, created_by_user_id: userId}])
+      .insert([{...doctorData, contact, created_by_user_id: userId}])
       .select();
     
     if (error) {
@@ -358,6 +379,18 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
 
 export async function updateDoctor(id: string, doctorData: Partial<SupabaseDoctor>): Promise<boolean> {
   try {
+    // If doctorData contains contact information, ensure it's formatted correctly
+    if (doctorData.contact) {
+      // If the address is not already in the [Address]_[City]_[Wilaya] format
+      // and we have city and wilaya information, format it
+      const contact = {...doctorData.contact};
+      if (contact.address && contact.city && contact.wilaya && 
+          !contact.address.includes('_')) {
+        contact.address = `${contact.address}_${contact.city}_${contact.wilaya}`;
+        doctorData.contact = contact;
+      }
+    }
+    
     const { error } = await supabase
       .from('doctors')
       .update(doctorData)

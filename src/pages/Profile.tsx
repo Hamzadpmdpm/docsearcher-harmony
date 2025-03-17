@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,7 +18,6 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect to login if not authenticated
     if (!user && !profile && !isLoading) {
       navigate('/auth');
     }
@@ -29,14 +27,12 @@ const Profile = () => {
     const fetchDoctorProfiles = async () => {
       if (user && profile) {
         try {
-          // Get profiles created by user
           if (profile.user_type === 'doctor') {
             const doctors = await getDoctors();
             const userCreatedDoctors = doctors.filter(doctor => doctor.created_by_user_id === user.id);
             setCreatedDoctorProfiles(userCreatedDoctors);
           }
           
-          // Get profiles claimed by user
           const claimedProfiles = await getDoctorProfilesByUserId(user.id);
           setClaimedDoctorProfiles(claimedProfiles);
         } catch (error) {
@@ -226,11 +222,12 @@ const Profile = () => {
                           <div key={doctor.id} className="relative">
                             <DoctorCard doctor={doctor} index={index} />
                             <Button 
-                              variant="outline"
-                              className="absolute top-4 right-4 bg-white opacity-90 hover:opacity-100 p-2 h-auto"
+                              variant="solid"
+                              className="absolute bottom-4 right-4 bg-health-600 hover:bg-health-700 text-white p-2 h-auto"
                               onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
                             >
-                              <Pencil size={16} />
+                              <Pencil size={16} className="mr-1" />
+                              Edit Profile
                             </Button>
                           </div>
                         ))
