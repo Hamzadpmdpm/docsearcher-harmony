@@ -222,7 +222,7 @@ const Profile = () => {
                           <div key={doctor.id} className="relative">
                             <DoctorCard doctor={doctor} index={index} />
                             <Button 
-                              variant="solid"
+                              variant="default"
                               className="absolute bottom-4 right-4 bg-health-600 hover:bg-health-700 text-white p-2 h-auto"
                               onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
                             >

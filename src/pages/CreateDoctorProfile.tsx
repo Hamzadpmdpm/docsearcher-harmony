@@ -1,7 +1,8 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getSpecialties, createDoctor, getDoctors } from '@/lib/api';
+import { getSpecialties, createDoctor, getDoctors, verifyDoctorByCurrentUser } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';

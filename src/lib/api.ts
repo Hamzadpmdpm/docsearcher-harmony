@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorRating, DoctorVerification, Profile, SupabaseDoctor } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -87,15 +86,18 @@ export async function getDoctorById(id: string): Promise<SupabaseDoctor | null> 
     }
     
     // Parse address if in the new format [Address]_[City]_[Wilaya]
-    if (data && data.contact && data.contact.address) {
-      const addressParts = data.contact.address.split('_');
-      if (addressParts.length >= 2) {
-        data.contact.address = addressParts[0] || '';
-        if (!data.contact.city) {
-          data.contact.city = addressParts[1] || '';
-        }
-        if (!data.contact.wilaya && addressParts.length >= 3) {
-          data.contact.wilaya = addressParts[2] || '';
+    if (data && data.contact) {
+      const contactData = data.contact as Record<string, any>;
+      if (contactData.address && typeof contactData.address === 'string') {
+        const addressParts = contactData.address.split('_');
+        if (addressParts.length >= 2) {
+          contactData.address = addressParts[0] || '';
+          if (!contactData.city && addressParts.length >= 2) {
+            contactData.city = addressParts[1] || '';
+          }
+          if (!contactData.wilaya && addressParts.length >= 3) {
+            contactData.wilaya = addressParts[2] || '';
+          }
         }
       }
     }
@@ -384,9 +386,11 @@ export async function updateDoctor(id: string, doctorData: Partial<SupabaseDocto
       // If the address is not already in the [Address]_[City]_[Wilaya] format
       // and we have city and wilaya information, format it
       const contact = {...doctorData.contact};
-      if (contact.address && contact.city && contact.wilaya && 
-          !contact.address.includes('_')) {
-        contact.address = `${contact.address}_${contact.city}_${contact.wilaya}`;
+      const contactObj = contact as Record<string, any>;
+      
+      if (contactObj.address && contactObj.city && contactObj.wilaya && 
+          typeof contactObj.address === 'string' && !contactObj.address.includes('_')) {
+        contactObj.address = `${contactObj.address}_${contactObj.city}_${contactObj.wilaya}`;
         doctorData.contact = contact;
       }
     }
