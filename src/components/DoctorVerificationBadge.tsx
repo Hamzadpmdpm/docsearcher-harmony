@@ -29,9 +29,27 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
       }
       
       // Check verification status
-      if (user && doctorId) {
-        const verification = await getDoctorVerification(doctorId, user.id);
-        setIsVerified(verification?.verified || false);
+      if (doctorId) {
+        try {
+          // First check if the doctor has any verification from any user
+          const response = await fetch(`/api/doctors/${doctorId}/verifications`);
+          const data = await response.json();
+          const hasAnyVerification = data.some((v: any) => v.verified);
+          setIsVerified(hasAnyVerification);
+          
+          // If logged in, also check this specific user's verification
+          if (user) {
+            const userVerification = await getDoctorVerification(doctorId, user.id);
+            setIsUserTheDoctor(userVerification?.verified || false);
+          }
+        } catch (error) {
+          console.error('Error checking verification status:', error);
+          // Default to checking user-specific verification as fallback
+          if (user) {
+            const verification = await getDoctorVerification(doctorId, user.id);
+            setIsVerified(verification?.verified || false);
+          }
+        }
       }
     };
     
@@ -56,18 +74,8 @@ const DoctorVerificationBadge = ({ doctorId, doctor }: DoctorVerificationBadgePr
     }
   };
   
-  // If user created this doctor profile, show verified badge
-  if (doctor.created_by_user_id && isUserTheDoctor) {
-    return (
-      <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm">
-        <BadgeCheck size={16} className="mr-1" />
-        <span>Doctor-Created Profile</span>
-      </div>
-    );
-  }
-  
-  // If this doctor profile is verified, show verified badge
-  if (isVerified) {
+  // If doctor profile is verified or created by a doctor, show verified badge to all users
+  if (isVerified || (doctor.created_by_user_id && isUserTheDoctor)) {
     return (
       <div className="flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm">
         <BadgeCheck size={16} className="mr-1" />

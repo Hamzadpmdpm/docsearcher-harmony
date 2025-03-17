@@ -1,25 +1,21 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { PlusCircle, Filter } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 import Header from '@/components/Header';
-import SearchBar from '@/components/SearchBar';
+import SearchBar, { SearchFilters } from '@/components/SearchBar';
 import DoctorCard from '@/components/DoctorCard';
-import SpecialtyFilter from '@/components/SpecialtyFilter';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { getDoctors } from '@/lib/api';
-import { SupabaseDoctor } from '@/types/supabase';
 import { useQuery } from '@tanstack/react-query';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 
 const DoctorsList = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [selectedWilaya, setSelectedWilaya] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [cityFilter, setCityFilter] = useState('');
   const [stateFilter, setStateFilter] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   
   // Get initial filters from URL params
   useEffect(() => {
@@ -27,6 +23,7 @@ const DoctorsList = () => {
     const searchParam = searchParams.get('search');
     const cityParam = searchParams.get('city');
     const stateParam = searchParams.get('state');
+    const wilayaParam = searchParams.get('wilaya');
     
     if (specialtyParam) {
       setSelectedSpecialty(specialtyParam);
@@ -43,40 +40,48 @@ const DoctorsList = () => {
     if (stateParam) {
       setStateFilter(stateParam);
     }
+    
+    if (wilayaParam) {
+      setSelectedWilaya(wilayaParam);
+    }
   }, [searchParams]);
   
   // Fetch doctors with react-query
   const { data: doctors = [], isLoading } = useQuery({
-    queryKey: ['doctors', selectedSpecialty, searchQuery, cityFilter, stateFilter],
+    queryKey: ['doctors', selectedSpecialty, searchQuery, cityFilter, stateFilter, selectedWilaya],
     queryFn: () => getDoctors({ 
       specialty: selectedSpecialty, 
       searchQuery: searchQuery,
       city: cityFilter,
-      state: stateFilter
+      state: stateFilter,
+      wilaya: selectedWilaya
     }),
   });
   
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, filters?: SearchFilters) => {
     setSearchQuery(query);
-    updateSearchParams(query, selectedSpecialty, cityFilter, stateFilter);
+    
+    if (filters) {
+      setSelectedSpecialty(filters.specialty || null);
+      setSelectedWilaya(filters.wilaya || null);
+    }
+    
+    updateSearchParams(
+      query, 
+      filters?.specialty || selectedSpecialty, 
+      cityFilter, 
+      stateFilter,
+      filters?.wilaya || selectedWilaya
+    );
   };
   
-  const handleSelectSpecialty = (specialty: string | null) => {
-    setSelectedSpecialty(specialty);
-    updateSearchParams(searchQuery, specialty, cityFilter, stateFilter);
-  };
-
-  const handleCityChange = (city: string) => {
-    setCityFilter(city);
-    updateSearchParams(searchQuery, selectedSpecialty, city, stateFilter);
-  };
-
-  const handleStateChange = (state: string) => {
-    setStateFilter(state);
-    updateSearchParams(searchQuery, selectedSpecialty, cityFilter, state);
-  };
-  
-  const updateSearchParams = (search: string, specialty: string | null, city: string, state: string) => {
+  const updateSearchParams = (
+    search: string, 
+    specialty: string | null, 
+    city: string, 
+    state: string,
+    wilaya: string | null
+  ) => {
     const newParams = new URLSearchParams();
     
     if (search) {
@@ -95,11 +100,11 @@ const DoctorsList = () => {
       newParams.set('state', state);
     }
     
+    if (wilaya) {
+      newParams.set('wilaya', wilaya);
+    }
+    
     setSearchParams(newParams);
-  };
-
-  const toggleFilters = () => {
-    setShowFilters(!showFilters);
   };
   
   return (
@@ -112,55 +117,17 @@ const DoctorsList = () => {
             <h1 className="text-3xl font-bold text-gray-900">Doctor Directory</h1>
           </AnimatedTransition>
           
-          <div className="mb-8 flex flex-col md:flex-row gap-4 items-start">
+          <div className="mb-8">
             <SearchBar 
               onSearch={handleSearch} 
               placeholder="Search doctors by name, specialty or hospital..." 
-              variant="minimal"
-              className="flex-grow"
+              className="w-full"
+              initialFilters={{
+                specialty: selectedSpecialty,
+                wilaya: selectedWilaya
+              }}
             />
-            
-            <Button 
-              variant="outline" 
-              onClick={toggleFilters} 
-              className="flex items-center gap-2 w-full md:w-auto"
-            >
-              <Filter size={16} />
-              Filters
-            </Button>
           </div>
-
-          {showFilters && (
-            <AnimatedTransition animation="slide-down" className="mb-6 p-4 bg-gray-50 rounded-lg shadow-subtle">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
-                  <SpecialtyFilter 
-                    selectedSpecialty={selectedSpecialty} 
-                    onSelectSpecialty={handleSelectSpecialty} 
-                  />
-                </div>
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                  <Input
-                    id="city"
-                    placeholder="Filter by city"
-                    value={cityFilter}
-                    onChange={(e) => handleCityChange(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">State</label>
-                  <Input
-                    id="state"
-                    placeholder="Filter by state"
-                    value={stateFilter}
-                    onChange={(e) => handleStateChange(e.target.value)}
-                  />
-                </div>
-              </div>
-            </AnimatedTransition>
-          )}
           
           <div className="mb-4 flex justify-between items-center">
             <AnimatedTransition animation="slide-up" delay={100}>
@@ -172,7 +139,7 @@ const DoctorsList = () => {
                   {selectedSpecialty && ` in ${selectedSpecialty}`}
                   {searchQuery && ` matching "${searchQuery}"`}
                   {cityFilter && ` in ${cityFilter}`}
-                  {stateFilter && `, ${stateFilter}`}
+                  {selectedWilaya && `, ${selectedWilaya}`}
                 </p>
               )}
             </AnimatedTransition>
