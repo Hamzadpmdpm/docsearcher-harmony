@@ -13,15 +13,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import Header from '@/components/Header';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import { ArrowLeft, Plus, Minus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { hospitalPrefixes, HospitalPrefix } from '@/data/hospitalPrefixes';
+import { wilayas } from '@/data/wilaya';
 
 const doctorSchema = z.object({
+  prefix: z.enum(["Dr", "Pr"]).default("Dr"),
   name: z.string().min(1, { message: 'Name is required' }),
   specialty: z.string().min(1, { message: 'Specialty is required' }),
   subspecialties: z.array(z.string()).optional(),
+  hospitalPrefix: z.string().min(1, { message: 'Hospital prefix is required' }),
   hospital: z.string().min(1, { message: 'Hospital is required' }),
   experience: z.coerce.number().min(0, { message: 'Experience must be a positive number' }),
   education: z.array(z.string()).min(1, { message: 'At least one education entry is required' }),
@@ -32,7 +37,7 @@ const doctorSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
   address: z.string().min(1, { message: 'Address is required' }),
   city: z.string().min(1, { message: 'City is required' }),
-  state: z.string().min(1, { message: 'State is required' }),
+  wilaya: z.string().min(1, { message: 'Wilaya is required' }),
 });
 
 type DoctorFormValues = z.infer<typeof doctorSchema>;
@@ -75,9 +80,11 @@ const CreateDoctorProfile = () => {
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorSchema),
     defaultValues: {
+      prefix: "Dr",
       name: '',
       specialty: '',
       subspecialties: [],
+      hospitalPrefix: '',
       hospital: '',
       experience: 0,
       education: [''],
@@ -88,7 +95,7 @@ const CreateDoctorProfile = () => {
       email: '',
       address: '',
       city: '',
-      state: '',
+      wilaya: '',
     }
   });
   
@@ -208,11 +215,17 @@ const CreateDoctorProfile = () => {
       const filteredEducation = education.filter(item => item.trim() !== '');
       const filteredLanguages = languages.filter(item => item.trim() !== '');
       
+      // Format the doctor name with prefix
+      const formattedName = `${values.prefix}. ${values.name}`;
+      
+      // Format the hospital name with prefix
+      const formattedHospital = `${values.hospitalPrefix} ${values.hospital}`;
+      
       const doctorData = {
-        name: values.name,
+        name: formattedName,
         specialty: values.specialty,
         subspecialties: filteredSubspecialties.length > 0 ? filteredSubspecialties : null,
-        hospital: values.hospital,
+        hospital: formattedHospital,
         rating: 0,
         experience: values.experience,
         education: filteredEducation,
@@ -224,7 +237,7 @@ const CreateDoctorProfile = () => {
           email: values.email,
           address: values.address,
           city: values.city,
-          state: values.state,
+          wilaya: values.wilaya,
         },
         image: '/placeholder.svg',
         created_by_user_id: user.id,
@@ -267,19 +280,46 @@ const CreateDoctorProfile = () => {
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
                   
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Dr. John Smith" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="prefix"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select title" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Dr">Dr</SelectItem>
+                              <SelectItem value="Pr">Pr</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name (without title)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John Smith" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
@@ -298,11 +338,13 @@ const CreateDoctorProfile = () => {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {specialties.map((specialty) => (
-                                <SelectItem key={specialty} value={specialty}>
-                                  {specialty}
-                                </SelectItem>
-                              ))}
+                              <ScrollArea className="h-72">
+                                {specialties.map((specialty) => (
+                                  <SelectItem key={specialty} value={specialty}>
+                                    {specialty}
+                                  </SelectItem>
+                                ))}
+                              </ScrollArea>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -310,19 +352,54 @@ const CreateDoctorProfile = () => {
                       )}
                     />
                     
-                    <FormField
-                      control={form.control}
-                      name="hospital"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hospital / Practice</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Mercy Hospital" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="hospitalPrefix"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hospital Type</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select hospital type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <ScrollArea className="h-72">
+                                  {hospitalPrefixes.map(({ prefix, description }) => (
+                                    <SelectItem key={prefix} value={prefix}>
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">{prefix}</span>
+                                        <span className="text-sm text-gray-500">{description}</span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </ScrollArea>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    
+                      <FormField
+                        control={form.control}
+                        name="hospital"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hospital / Practice Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Hospital name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
                   
                   <div>
@@ -537,13 +614,29 @@ const CreateDoctorProfile = () => {
                     
                     <FormField
                       control={form.control}
-                      name="state"
+                      name="wilaya"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>State</FormLabel>
-                          <FormControl>
-                            <Input placeholder="MA" {...field} />
-                          </FormControl>
+                          <FormLabel>Wilaya</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select wilaya" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <ScrollArea className="h-72">
+                                {wilayas.map((wilaya) => (
+                                  <SelectItem key={wilaya} value={wilaya}>
+                                    {wilaya}
+                                  </SelectItem>
+                                ))}
+                              </ScrollArea>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}

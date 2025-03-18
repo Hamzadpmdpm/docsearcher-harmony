@@ -6,12 +6,14 @@ import { hospitalPrefixes } from '@/data/hospitalPrefixes';
 import { wilayas } from '@/data/wilaya';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function CreateDoctorProfile() {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const [selectedHospitalPrefix, setSelectedHospitalPrefix] = useState<string>('');
   const [selectedWilaya, setSelectedWilaya] = useState<string>('');
+  const [selectedPrefix, setSelectedPrefix] = useState<string>('Dr');
 
   const handleRedirect = async () => {
     setIsLoading(true);
@@ -38,6 +40,22 @@ export default function CreateDoctorProfile() {
       </p>
       
       <div className="space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Doctor Title</label>
+          <Select 
+            onValueChange={setSelectedPrefix}
+            value={selectedPrefix}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select title" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Dr">Dr</SelectItem>
+              <SelectItem value="Pr">Pr</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Type</label>
           <Select 
