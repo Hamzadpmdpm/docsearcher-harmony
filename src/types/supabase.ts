@@ -48,6 +48,7 @@ export interface DoctorRating {
   user_id: string;
   rating: number;
   comment: string | null;
+  doctor_response: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { SupabaseDoctor } from '@/types/supabase';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface DoctorVerificationBadgeProps {
   doctorId: string;
@@ -64,10 +65,19 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
   
   // If doctor profile is verified by anyone, show verified badge
   if (isVerified) {
+    if (iconOnly) {
+      return (
+        <div className="text-blue-600" title="Verified Doctor">
+          <BadgeCheck size={16} className="fill-blue-100" />
+        </div>
+      );
+    }
+    
     return (
-      <div className="text-blue-600" title="Verified Doctor">
-        <BadgeCheck size={16} className="fill-blue-100" />
-      </div>
+      <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-600 border-blue-200">
+        <BadgeCheck size={14} className="fill-blue-100" />
+        <span className="text-xs">Verified</span>
+      </Badge>
     );
   }
   
@@ -77,7 +87,14 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
           <button className="text-gray-400" title="Claim this profile">
-            <BadgeCheck size={16} className="fill-gray-100" />
+            {iconOnly ? (
+              <BadgeCheck size={16} className="fill-gray-100" />
+            ) : (
+              <Badge variant="outline" className="flex items-center gap-1 bg-gray-50 text-gray-500 border-gray-200 cursor-pointer">
+                <BadgeCheck size={14} className="fill-gray-100" />
+                <span className="text-xs">Claim Profile</span>
+              </Badge>
+            )}
           </button>
         </DialogTrigger>
         <DialogContent>
@@ -113,12 +130,19 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     );
   }
   
-  // Default (unverified profile)
+  // Default (unverified profile) - Now visible to everyone
   return (
     <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
       <DialogTrigger asChild>
         <button className="text-gray-400" title="Unverified Doctor">
-          <BadgeCheck size={16} className="fill-gray-100" />
+          {iconOnly ? (
+            <BadgeCheck size={16} className="fill-gray-100" />
+          ) : (
+            <Badge variant="outline" className="flex items-center gap-1 bg-gray-50 text-gray-500 border-gray-200 cursor-pointer">
+              <BadgeCheck size={14} className="fill-gray-100" />
+              <span className="text-xs">Unverified</span>
+            </Badge>
+          )}
         </button>
       </DialogTrigger>
       <DialogContent>

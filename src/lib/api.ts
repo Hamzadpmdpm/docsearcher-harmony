@@ -85,7 +85,6 @@ export async function getDoctorById(id: string): Promise<SupabaseDoctor | null> 
       return null;
     }
     
-    // Parse address if in the new format [Address]_[City]_[Wilaya]
     if (data && data.contact) {
       const contactData = data.contact as Record<string, any>;
       if (contactData.address && typeof contactData.address === 'string') {
@@ -215,6 +214,43 @@ export async function verifyDoctorByCurrentUser(doctorId: string): Promise<boole
   }
 }
 
+export async function isUserDoctorOwner(doctorId: string, userId: string): Promise<boolean> {
+  try {
+    const { data: doctor, error: doctorError } = await supabase
+      .from('doctors')
+      .select('created_by_user_id')
+      .eq('id', doctorId)
+      .maybeSingle();
+    
+    if (doctorError) {
+      console.error('Error checking doctor ownership:', doctorError);
+      return false;
+    }
+    
+    if (doctor && doctor.created_by_user_id === userId) {
+      return true;
+    }
+    
+    const { data: verification, error: verificationError } = await supabase
+      .from('doctor_verifications')
+      .select('*')
+      .eq('doctor_id', doctorId)
+      .eq('user_id', userId)
+      .eq('verified', true)
+      .maybeSingle();
+    
+    if (verificationError) {
+      console.error('Error checking verification:', verificationError);
+      return false;
+    }
+    
+    return !!verification;
+  } catch (error) {
+    console.error('Error in isUserDoctorOwner:', error);
+    return false;
+  }
+}
+
 export async function getDoctorProfilesByUserId(userId: string): Promise<SupabaseDoctor[]> {
   try {
     const { data: verifications, error: verificationError } = await supabase
@@ -255,7 +291,8 @@ export async function getDoctorRatings(doctorId: string): Promise<DoctorRating[]
     const { data, error } = await supabase
       .from('doctor_ratings')
       .select('*')
-      .eq('doctor_id', doctorId);
+      .eq('doctor_id', doctorId)
+      .order('created_at', { ascending: false });
     
     if (error) {
       console.error('Error fetching doctor ratings:', error);
@@ -326,6 +363,28 @@ export async function rateDoctor(doctorId: string, userId: string, rating: numbe
   }
 }
 
+export async function respondToRating(ratingId: string, response: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('doctor_ratings')
+      .update({ doctor_response: response })
+      .eq('id', ratingId);
+    
+    if (error) {
+      console.error('Error responding to rating:', error);
+      toast.error('Failed to submit response');
+      return false;
+    }
+    
+    toast.success('Response submitted successfully');
+    return true;
+  } catch (error) {
+    console.error('Error in respondToRating:', error);
+    toast.error('Failed to submit response');
+    return false;
+  }
+}
+
 export async function uploadDoctorImage(file: File): Promise<string | null> {
   try {
     const fileExt = file.name.split('.').pop();
@@ -380,7 +439,6 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
       return null;
     }
     
-    // Format address as [Address]_[City]_[Wilaya]
     const contact = {...doctorData.contact};
     if (contact.address && contact.city && contact.wilaya) {
       contact.address = `${contact.address}_${contact.city}_${contact.wilaya}`;
@@ -408,10 +466,7 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
 
 export async function updateDoctor(id: string, doctorData: Partial<SupabaseDoctor>): Promise<boolean> {
   try {
-    // If doctorData contains contact information, ensure it's formatted correctly
     if (doctorData.contact) {
-      // If the address is not already in the [Address]_[City]_[Wilaya] format
-      // and we have city and wilaya information, format it
       const contact = {...doctorData.contact};
       const contactObj = contact as Record<string, any>;
       
@@ -448,7 +503,7 @@ export async function getProfileById(userId: string): Promise<Profile | null> {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     
     if (error) {
       console.error('Error fetching profile:', error);
