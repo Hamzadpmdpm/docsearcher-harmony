@@ -12,6 +12,7 @@ interface SpecialtyFilterProps {
 
 const SpecialtyFilter = ({ selectedSpecialty, onSelectSpecialty }: SpecialtyFilterProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const { data: specialties = [] } = useQuery({
@@ -19,6 +20,11 @@ const SpecialtyFilter = ({ selectedSpecialty, onSelectSpecialty }: SpecialtyFilt
     queryFn: getSpecialties,
     staleTime: 1000 * 60 * 60, // Cache for 1 hour
   });
+  
+  // Filter specialties based on search query
+  const filteredSpecialties = specialties.filter(specialty => 
+    specialty.toLowerCase().includes(searchQuery.toLowerCase())
+  );
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -82,6 +88,16 @@ const SpecialtyFilter = ({ selectedSpecialty, onSelectSpecialty }: SpecialtyFilt
 
       {isOpen && (
         <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-elevated overflow-hidden animate-scale-in origin-top">
+          <div className="p-2">
+            <input
+              type="text"
+              placeholder="Search specialties..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-health-200"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
           <div className="max-h-60 overflow-y-auto py-1">
             <button
               className={cn(
@@ -95,7 +111,7 @@ const SpecialtyFilter = ({ selectedSpecialty, onSelectSpecialty }: SpecialtyFilt
               )}
               <span className={!selectedSpecialty ? "ml-2" : ""}>All Specialties</span>
             </button>
-            {specialties.map((specialty) => (
+            {filteredSpecialties.map((specialty) => (
               <button
                 key={specialty}
                 className={cn(

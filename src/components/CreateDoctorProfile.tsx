@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 // Create doctor profile component
 export default function CreateDoctorProfile() {
@@ -31,7 +30,7 @@ export default function CreateDoctorProfile() {
     <div className="p-6 max-w-3xl mx-auto bg-white rounded-xl shadow-md">
       <h1 className="text-2xl font-bold mb-4">Create Doctor Profile</h1>
       <p className="mb-6 text-gray-600">
-        Create your professional doctor profile to be listed in our directory.
+        Create your professional doctor profile to be listed in our Doctal directory.
       </p>
       
       <button 

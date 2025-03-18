@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,6 +51,12 @@ const Profile = () => {
 
     fetchDoctorProfiles();
   }, [user, profile]);
+
+  // Function to handle "Edit Profile" button click since the route doesn't exist yet
+  const handleEditProfileClick = () => {
+    // For now, we'll just show an alert since the route isn't implemented
+    alert('Profile editing will be available in a future update.');
+  };
 
   if (isLoading) {
     return (
@@ -110,7 +117,7 @@ const Profile = () => {
                 <div className="flex flex-wrap gap-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => navigate('/profile/edit')}
+                    onClick={handleEditProfileClick}
                     className="flex items-center gap-2"
                   >
                     <UserCog size={16} />

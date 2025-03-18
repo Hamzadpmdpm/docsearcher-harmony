@@ -339,61 +339,23 @@ const EditDoctorProfile = () => {
                   
                   <div>
                     <Label htmlFor="specialty">Specialty</Label>
-                    <Popover open={specialtyOpen} onOpenChange={setSpecialtyOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={specialtyOpen}
-                          className="w-full justify-between font-normal"
-                          type="button"
-                        >
-                          {watchedSpecialty
-                            ? specialties.find((specialty) => specialty === watchedSpecialty)
-                            : "Select specialty..."}
-                          <X
-                            className={cn(
-                              "ml-2 h-4 w-4 shrink-0 opacity-50",
-                              !watchedSpecialty && "hidden"
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setValue('specialty', '');
-                            }}
-                          />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search specialty..." />
-                          <CommandEmpty>No specialty found.</CommandEmpty>
-                          <CommandGroup>
-                            <ScrollArea className="h-72">
-                              {specialties.map((specialty) => (
-                                <CommandItem
-                                  key={specialty}
-                                  value={specialty}
-                                  onSelect={() => {
-                                    setValue('specialty', specialty);
-                                    setSpecialtyOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      watchedSpecialty === specialty
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {specialty}
-                                </CommandItem>
-                              ))}
-                            </ScrollArea>
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Select
+                      onValueChange={(value) => setValue('specialty', value)}
+                      value={watchedSpecialty}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select specialty" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <ScrollArea className="h-72">
+                          {specialties.map((specialty) => (
+                            <SelectItem key={specialty} value={specialty}>
+                              {specialty}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
                     {errors.specialty && <p className="text-red-500 text-sm mt-1">{errors.specialty.message}</p>}
                   </div>
                   
@@ -480,62 +442,24 @@ const EditDoctorProfile = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="wilaya">Wilaya</Label>
-                    <Popover open={wilayaOpen} onOpenChange={setWilayaOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={wilayaOpen}
-                          className="w-full justify-between font-normal"
-                          type="button"
-                        >
-                          {watchedWilaya
-                            ? wilayas.find((wilaya) => wilaya === watchedWilaya)
-                            : "Select wilaya..."}
-                          <X
-                            className={cn(
-                              "ml-2 h-4 w-4 shrink-0 opacity-50",
-                              !watchedWilaya && "hidden"
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setValue('contactWilaya', '');
-                            }}
-                          />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0">
-                        <Command>
-                          <CommandInput placeholder="Search wilaya..." />
-                          <CommandEmpty>No wilaya found.</CommandEmpty>
-                          <CommandGroup>
-                            <ScrollArea className="h-72">
-                              {wilayas.map((wilaya) => (
-                                <CommandItem
-                                  key={wilaya}
-                                  value={wilaya}
-                                  onSelect={() => {
-                                    setValue('contactWilaya', wilaya);
-                                    setWilayaOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      watchedWilaya === wilaya
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {wilaya}
-                                </CommandItem>
-                              ))}
-                            </ScrollArea>
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Label htmlFor="contactWilaya">Wilaya</Label>
+                    <Select
+                      onValueChange={(value) => setValue('contactWilaya', value)}
+                      value={watchedWilaya || ""}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select wilaya" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <ScrollArea className="h-72">
+                          {wilayas.map((wilaya) => (
+                            <SelectItem key={wilaya} value={wilaya}>
+                              {wilaya}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div>
