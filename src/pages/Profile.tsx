@@ -1,6 +1,5 @@
-
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDoctors, getProfileById, getDoctorProfilesByUserId } from '@/lib/api';
 import { SupabaseDoctor } from '@/types/supabase';
@@ -100,10 +99,10 @@ const Profile = () => {
                   </div>
                   <div>
                     <h1 className="text-2xl font-semibold text-gray-900">
-                      {profile.first_name} {profile.last_name}
+                      {profile?.first_name} {profile?.last_name}
                     </h1>
                     <p className="text-gray-600 capitalize">
-                      {profile.user_type}
+                      {profile?.user_type}
                     </p>
                   </div>
                 </div>
@@ -129,7 +128,7 @@ const Profile = () => {
                 </div>
               </div>
               
-              {profile.user_type === 'doctor' && (
+              {profile?.user_type === 'doctor' && (
                 <>
                   {/* Created doctor profiles section */}
                   <AnimatedTransition animation="slide-up" className="mb-8">
@@ -146,7 +145,10 @@ const Profile = () => {
                             <Button 
                               variant="outline"
                               className="absolute top-4 right-4 bg-white opacity-90 hover:opacity-100 p-2 h-auto"
-                              onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                navigate(`/doctors/${doctor.id}/edit`);
+                              }}
                             >
                               <Pencil size={16} />
                             </Button>
@@ -273,7 +275,7 @@ const Profile = () => {
                 </>
               )}
               
-              {profile.user_type === 'patient' && (
+              {profile?.user_type === 'patient' && (
                 <>
                   <AnimatedTransition animation="slide-up" className="mb-8">
                     <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">

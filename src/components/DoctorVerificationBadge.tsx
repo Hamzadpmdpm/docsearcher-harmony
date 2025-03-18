@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDoctorVerification, verifyDoctorByCurrentUser } from '@/lib/api';
+import { getDoctorVerification, verifyDoctorByCurrentUser, isVerifiedDoctor } from '@/lib/api';
 import { BadgeCheck, Info, User, Shield, ShieldQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -23,32 +24,19 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
   
   useEffect(() => {
     const checkVerificationStatus = async () => {
+      // Check if the doctor has verification from any user
+      const hasVerification = await isVerifiedDoctor(doctorId);
+      setIsVerified(hasVerification);
+      
+      // If user is logged in, check if they are the doctor
       if (doctor.created_by_user_id && user) {
         // Check if current user created this doctor profile
         setIsUserTheDoctor(doctor.created_by_user_id === user.id);
-      }
-      
-      // Check verification status
-      if (doctorId) {
-        try {
-          // First check if the doctor has any verification from any user
-          const response = await fetch(`/api/doctors/${doctorId}/verifications`);
-          const data = await response.json();
-          const hasAnyVerification = data.some((v: any) => v.verified);
-          setIsVerified(hasAnyVerification);
-          
-          // If logged in, also check this specific user's verification
-          if (user) {
-            const userVerification = await getDoctorVerification(doctorId, user.id);
-            setIsUserTheDoctor(userVerification?.verified || false);
-          }
-        } catch (error) {
-          console.error('Error checking verification status:', error);
-          // Default to checking user-specific verification as fallback
-          if (user) {
-            const verification = await getDoctorVerification(doctorId, user.id);
-            setIsVerified(verification?.verified || false);
-          }
+        
+        // Or if they claimed it
+        if (!isUserTheDoctor) {
+          const verification = await getDoctorVerification(doctorId, user.id);
+          setIsUserTheDoctor(verification?.verified || false);
         }
       }
     };
@@ -74,73 +62,22 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     }
   };
   
-  // If doctor profile is verified or created by a doctor, show verified badge to all users
-  if (isVerified || (doctor.created_by_user_id && isUserTheDoctor)) {
-    if (iconOnly) {
-      return (
-        <div className="text-blue-600">
-          <BadgeCheck size={16} className="fill-blue-100" />
-        </div>
-      );
-    }
-    
+  // If doctor profile is verified by anyone, show verified badge
+  if (isVerified) {
     return (
-      <div className="flex items-center text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-sm">
-        <BadgeCheck size={16} className="mr-1" />
-        <span>Verified Doctor</span>
+      <div className="text-blue-600" title="Verified Doctor">
+        <BadgeCheck size={16} className="fill-blue-100" />
       </div>
     );
   }
   
   // If user is the actual doctor but hasn't claimed the profile
   if (user && profile?.user_type === 'doctor' && !isUserTheDoctor && !isVerified) {
-    if (iconOnly) {
-      return (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <button className="text-gray-500">
-              <BadgeCheck size={16} className="fill-gray-100" />
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Claim Your Doctor Profile</DialogTitle>
-              <DialogDescription>
-                Is this your professional profile? You can claim this profile to verify your identity.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-6 space-y-4">
-              <p className="text-sm text-gray-700">
-                By claiming this profile, you confirm that you are {doctor.name} and that the information presented is accurate.
-              </p>
-              
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleClaimProfile}
-                  className="bg-health-600 hover:bg-health-700"
-                >
-                  Claim Profile
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      );
-    }
-    
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogTrigger asChild>
-          <button className="flex items-center text-health-600 bg-health-50 px-3 py-1 rounded-full text-sm">
-            <User size={16} className="mr-1" />
-            <span>Are you this doctor?</span>
+          <button className="text-gray-400" title="Claim this profile">
+            <BadgeCheck size={16} className="fill-gray-100" />
           </button>
         </DialogTrigger>
         <DialogContent>
@@ -176,80 +113,12 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     );
   }
   
-  // Default (unverified profile) - Add the claim profile button for doctors who are not logged in
-  if (iconOnly) {
-    return (
-      <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
-        <DialogTrigger asChild>
-          <button className="text-gray-500">
-            <BadgeCheck size={16} className="fill-gray-100" />
-          </button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you Dr. {doctor.name}?</DialogTitle>
-            <DialogDescription>
-              This profile was created by the community. If this is your profile, you can claim it and verify your information.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-6 space-y-4">
-            <p className="text-sm text-gray-700">
-              By claiming this profile, you'll be able to:
-            </p>
-            <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-              <li>Update your professional information</li>
-              <li>Respond to reviews</li>
-              <li>Get a verified badge</li>
-              <li>Manage your appointment availability</li>
-            </ul>
-            
-            <div className="flex flex-col space-y-3 mt-4">
-              {user ? (
-                <>
-                  {profile?.user_type === 'doctor' ? (
-                    <Button
-                      onClick={handleClaimProfile}
-                      className="bg-health-600 hover:bg-health-700"
-                    >
-                      <Shield className="mr-2" size={16} />
-                      Claim this profile
-                    </Button>
-                  ) : (
-                    <p className="text-sm text-amber-600">
-                      Your account is registered as a patient. Only doctor accounts can claim profiles.
-                    </p>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Link to="/auth?type=signin&redirect=doctors" className="w-full">
-                    <Button className="w-full bg-health-600 hover:bg-health-700">
-                      <User className="mr-2" size={16} />
-                      Sign in as a doctor
-                    </Button>
-                  </Link>
-                  <Link to="/auth?type=signup&userType=doctor&redirect=doctors" className="w-full">
-                    <Button variant="outline" className="w-full">
-                      <Shield className="mr-2" size={16} />
-                      Sign up as a doctor
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-  
+  // Default (unverified profile)
   return (
     <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
       <DialogTrigger asChild>
-        <button className="flex items-center text-gray-500 bg-gray-100 px-3 py-1 rounded-full text-sm hover:bg-gray-200 transition-colors">
-          <ShieldQuestion size={16} className="mr-1" />
-          <span>Unverified Profile</span>
+        <button className="text-gray-400" title="Unverified Doctor">
+          <BadgeCheck size={16} className="fill-gray-100" />
         </button>
       </DialogTrigger>
       <DialogContent>

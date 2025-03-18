@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Star, MapPin, CheckCircle, XCircle, BadgeCheck } from 'lucide-react';
+import { Star, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseDoctor } from '@/types/supabase';
 import DoctorVerificationBadge from './DoctorVerificationBadge';

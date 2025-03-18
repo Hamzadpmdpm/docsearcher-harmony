@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { getDoctorById, updateDoctor, getDoctorVerification, getSpecialties } from '@/lib/api';
+import { getDoctorById, updateDoctor, getDoctorVerification, getSpecialties, uploadDoctorImage } from '@/lib/api';
 import { SupabaseDoctor } from '@/types/supabase';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -63,11 +62,10 @@ const EditDoctorProfile = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
-  // Fetch specialties
   const { data: specialties = [] } = useQuery({
     queryKey: ['specialties'],
     queryFn: getSpecialties,
-    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+    staleTime: 1000 * 60 * 60,
   });
 
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<DoctorFormValues>({
@@ -92,7 +90,6 @@ const EditDoctorProfile = () => {
       }
 
       try {
-        // First, fetch the doctor profile
         const doctorData = await getDoctorById(id);
         if (!doctorData) {
           toast.error('Doctor profile not found');
@@ -102,14 +99,11 @@ const EditDoctorProfile = () => {
 
         setDoctor(doctorData);
 
-        // Check if user created this doctor profile
         const isCreator = doctorData.created_by_user_id === user.id;
         
-        // Check if user has verified/claimed this profile
         const verification = await getDoctorVerification(id, user.id);
         const isClaimer = verification?.verified || false;
         
-        // User has permission if they created or claimed the profile
         const userHasPermission = isCreator || isClaimer;
         setHasPermission(userHasPermission);
 
@@ -119,7 +113,6 @@ const EditDoctorProfile = () => {
           return;
         }
 
-        // Parse name to extract prefix if available
         let prefix = "Dr";
         let name = doctorData.name;
         if (doctorData.name.startsWith("Dr. ")) {
@@ -131,9 +124,8 @@ const EditDoctorProfile = () => {
         }
         
         setValue('prefix', prefix as "Dr" | "Pr");
-        setValue('gender', "Male"); // Default - you may need to extract this from profile data
+        setValue('gender', "Male");
         
-        // Populate form with existing data
         setValue('name', name);
         setValue('specialty', doctorData.specialty);
         setValue('subspecialties', doctorData.subspecialties?.join(', ') || '');
@@ -148,7 +140,6 @@ const EditDoctorProfile = () => {
         setValue('contactPhone', doctorData.contact.phone);
         setValue('contactEmail', doctorData.contact.email);
         
-        // Parse address if it follows the [Address]_[City]_[Wilaya] format
         if (typeof doctorData.contact.address === 'string') {
           const addressParts = doctorData.contact.address.split('_');
           
@@ -180,12 +171,10 @@ const EditDoctorProfile = () => {
     checkPermissions();
   }, [id, user, navigate, setValue, specialties]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setImageFile(file);
       
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
@@ -194,9 +183,17 @@ const EditDoctorProfile = () => {
       };
       reader.readAsDataURL(file);
       
-      // For now, we'll just set the image value to the file name
-      // In a real app, you'd upload this to storage and get a URL
-      setValue('image', URL.createObjectURL(file));
+      toast.loading('Uploading image...');
+      
+      const imageUrl = await uploadDoctorImage(file);
+      
+      if (imageUrl) {
+        setImagePreview(imageUrl);
+        setValue('image', imageUrl);
+        toast.success('Image uploaded successfully');
+      } else {
+        toast.error('Failed to upload image');
+      }
     }
   };
 
@@ -206,7 +203,6 @@ const EditDoctorProfile = () => {
     try {
       const formattedName = `${data.prefix}. ${data.name}`;
       
-      // Format address as requested: [Address]_[City]_[Wilaya]
       const formattedAddress = [
         data.contactAddress,
         data.contactCity,
@@ -350,6 +346,7 @@ const EditDoctorProfile = () => {
                           role="combobox"
                           aria-expanded={specialtyOpen}
                           className="w-full justify-between font-normal"
+                          type="button"
                         >
                           {watchedSpecialty
                             ? specialties.find((specialty) => specialty === watchedSpecialty)
@@ -491,6 +488,7 @@ const EditDoctorProfile = () => {
                           role="combobox"
                           aria-expanded={wilayaOpen}
                           className="w-full justify-between font-normal"
+                          type="button"
                         >
                           {watchedWilaya
                             ? wilayas.find((wilaya) => wilaya === watchedWilaya)
