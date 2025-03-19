@@ -17,8 +17,7 @@ import DoctorVerificationBadge from '@/components/DoctorVerificationBadge';
 const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
-  const [createdDoctorProfiles, setCreatedDoctorProfiles] = useState<SupabaseDoctor[]>([]);
-  const [claimedDoctorProfiles, setClaimedDoctorProfiles] = useState<SupabaseDoctor[]>([]);
+  const [doctorProfiles, setDoctorProfiles] = useState<SupabaseDoctor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,14 +30,26 @@ const Profile = () => {
     const fetchDoctorProfiles = async () => {
       if (user && profile) {
         try {
+          // Combined approach to get all profiles (created and claimed)
+          let allProfiles: SupabaseDoctor[] = [];
+          
           if (profile.user_type === 'doctor') {
             const doctors = await getDoctors();
             const userCreatedDoctors = doctors.filter(doctor => doctor.created_by_user_id === user.id);
-            setCreatedDoctorProfiles(userCreatedDoctors);
+            allProfiles = [...userCreatedDoctors];
           }
           
           const claimedProfiles = await getDoctorProfilesByUserId(user.id);
-          setClaimedDoctorProfiles(claimedProfiles);
+          
+          // Combine profiles while avoiding duplicates
+          const existingIds = new Set(allProfiles.map(doctor => doctor.id));
+          for (const doctor of claimedProfiles) {
+            if (!existingIds.has(doctor.id)) {
+              allProfiles.push(doctor);
+            }
+          }
+          
+          setDoctorProfiles(allProfiles);
         } catch (error) {
           console.error('Error fetching doctor profiles:', error);
         } finally {
@@ -137,16 +148,16 @@ const Profile = () => {
               
               {profile?.user_type === 'doctor' && (
                 <>
-                  {/* Created doctor profiles section */}
+                  {/* Combined doctor profiles section */}
                   <AnimatedTransition animation="slide-up" className="mb-8">
                     <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                       <UserCog className="mr-2" size={18} />
-                      Your Created Doctor Profiles
+                      Your Doctor Profiles
                     </h2>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {createdDoctorProfiles.length > 0 ? (
-                        createdDoctorProfiles.map((doctor, index) => (
+                      {doctorProfiles.length > 0 ? (
+                        doctorProfiles.map((doctor, index) => (
                           <div key={doctor.id} className="relative">
                             <DoctorCard doctor={doctor} index={index} />
                             <Button 
@@ -164,7 +175,7 @@ const Profile = () => {
                       ) : (
                         <div className="col-span-full">
                           <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-                            <p className="text-gray-600 mb-4">You haven't created any doctor profiles yet.</p>
+                            <p className="text-gray-600 mb-4">You don't have any doctor profiles yet.</p>
                             <Dialog>
                               <DialogTrigger asChild>
                                 <Button className="bg-health-600 hover:bg-health-700">
@@ -193,12 +204,12 @@ const Profile = () => {
                         </div>
                       )}
                       
-                      {createdDoctorProfiles.length > 0 && (
+                      {doctorProfiles.length > 0 && doctorProfiles.length < 2 && profile.user_type === 'doctor' && (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button className="col-span-full bg-health-600 hover:bg-health-700 mt-4">
                               <Plus size={16} className="mr-2" />
-                              Create Another Doctor Profile
+                              Create Doctor Profile
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
@@ -218,64 +229,6 @@ const Profile = () => {
                             </div>
                           </DialogContent>
                         </Dialog>
-                      )}
-                    </div>
-                  </AnimatedTransition>
-                  
-                  {/* Claimed doctor profiles section */}
-                  <AnimatedTransition animation="slide-up" className="mb-8">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                      <User className="mr-2" size={18} />
-                      Your Claimed Doctor Profiles
-                    </h2>
-                    
-                    <div className="space-y-4">
-                      {claimedDoctorProfiles.length > 0 ? (
-                        claimedDoctorProfiles.map((doctor, index) => (
-                          <Card key={doctor.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                            <div className="flex flex-col md:flex-row">
-                              <div className="w-full md:w-48 h-40 md:h-auto bg-health-50">
-                                <img 
-                                  src={doctor.image} 
-                                  alt={doctor.name} 
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                              <div className="flex-1 p-6">
-                                <div className="flex flex-wrap justify-between items-start mb-2">
-                                  <div>
-                                    <h3 className="text-xl font-semibold text-gray-900">{doctor.name}</h3>
-                                    <div className="mt-1 flex items-start flex-wrap gap-2">
-                                      <Badge variant="secondary" className="bg-health-50 text-health-700">
-                                        {doctor.specialty}
-                                      </Badge>
-                                      <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} />
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <p className="text-gray-600 mb-4 line-clamp-2">{doctor.bio}</p>
-                                
-                                <div className="mt-4 flex justify-end">
-                                  <Button
-                                    variant="default"
-                                    onClick={() => navigate(`/doctors/${doctor.id}/edit`)}
-                                    className="bg-health-600 hover:bg-health-700"
-                                  >
-                                    <Pencil size={16} className="mr-2" />
-                                    Edit Profile
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </Card>
-                        ))
-                      ) : (
-                        <div className="col-span-full">
-                          <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-                            <p className="text-gray-600">You haven't claimed any doctor profiles yet.</p>
-                          </div>
-                        </div>
                       )}
                     </div>
                   </AnimatedTransition>

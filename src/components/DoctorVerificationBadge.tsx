@@ -81,7 +81,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     );
   }
   
-  // If user is the actual doctor but hasn't claimed the profile
+  // If user is logged in and is the actual doctor but hasn't claimed the profile
   if (user && profile?.user_type === 'doctor' && !isUserTheDoctor && !isVerified) {
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

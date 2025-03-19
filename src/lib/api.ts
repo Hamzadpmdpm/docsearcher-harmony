@@ -101,6 +101,18 @@ export async function getDoctorById(id: string): Promise<SupabaseDoctor | null> 
       }
     }
     
+    const ratings = await getDoctorRatings(id);
+    if (ratings && ratings.length > 0) {
+      const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
+      const avgRating = +(sum / ratings.length).toFixed(1); // Round to 1 decimal place
+      data.rating = avgRating;
+      
+      await supabase
+        .from('doctors')
+        .update({ rating: avgRating })
+        .eq('id', id);
+    }
+    
     return data as SupabaseDoctor;
   } catch (error) {
     console.error('Error in getDoctorById:', error);
@@ -352,6 +364,17 @@ export async function rateDoctor(doctorId: string, userId: string, rating: numbe
         toast.error('Failed to submit rating');
         return false;
       }
+    }
+    
+    const ratings = await getDoctorRatings(doctorId);
+    if (ratings && ratings.length > 0) {
+      const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
+      const avgRating = +(sum / ratings.length).toFixed(1); // Round to 1 decimal place
+      
+      await supabase
+        .from('doctors')
+        .update({ rating: avgRating })
+        .eq('id', doctorId);
     }
     
     toast.success('Rating submitted successfully');
