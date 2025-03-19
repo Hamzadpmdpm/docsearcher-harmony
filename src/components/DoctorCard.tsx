@@ -18,22 +18,32 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
   const [isVerified, setIsVerified] = useState(false);
   
   useEffect(() => {
-    // Calculate the actual rating from reviews
+    // Calculate the actual rating from reviews - no auth required
     const fetchRatings = async () => {
-      const ratings = await getDoctorRatings(doctor.id);
-      if (ratings && ratings.length > 0) {
-        const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
-        const avgRating = +(sum / ratings.length).toFixed(1);
-        setCalculatedRating(avgRating);
-      } else {
+      try {
+        const ratings = await getDoctorRatings(doctor.id);
+        if (ratings && ratings.length > 0) {
+          const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
+          const avgRating = +(sum / ratings.length).toFixed(1);
+          setCalculatedRating(avgRating);
+        } else {
+          setCalculatedRating(0);
+        }
+      } catch (error) {
+        console.error("Error fetching doctor ratings:", error);
         setCalculatedRating(0);
       }
     };
     
-    // Check if the doctor is verified
+    // Check if the doctor is verified - no auth required
     const checkVerification = async () => {
-      const verified = await isVerifiedDoctor(doctor.id);
-      setIsVerified(verified);
+      try {
+        const verified = await isVerifiedDoctor(doctor.id);
+        setIsVerified(verified);
+      } catch (error) {
+        console.error("Error checking doctor verification:", error);
+        setIsVerified(false);
+      }
     };
     
     fetchRatings();
@@ -81,7 +91,7 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
               <div className="flex items-center">
                 <Star size={14} className="text-yellow-500 fill-yellow-500" />
                 <span className="ml-1 text-sm font-medium text-gray-700">
-                  {calculatedRating !== null ? calculatedRating : doctor.rating || 0}
+                  {calculatedRating !== null ? calculatedRating : 0}
                 </span>
               </div>
             </div>

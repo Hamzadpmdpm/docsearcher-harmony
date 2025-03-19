@@ -1,7 +1,8 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDoctorVerification, verifyDoctorByCurrentUser, isVerifiedDoctor } from '@/lib/api';
-import { BadgeCheck, Info, User, Shield, ShieldQuestion } from 'lucide-react';
+import { BadgeCheck, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { SupabaseDoctor } from '@/types/supabase';
@@ -32,7 +33,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerifie
         setIsVerified(hasVerification);
       }
       
-      if (doctor.created_by_user_id && user) {
+      if (user && doctor.created_by_user_id) {
         setIsUserTheDoctor(doctor.created_by_user_id === user.id);
         
         if (!isUserTheDoctor) {
@@ -43,7 +44,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerifie
     };
     
     checkVerificationStatus();
-  }, [doctorId, user, doctor, passedIsVerified]);
+  }, [doctorId, user, doctor, passedIsVerified, isUserTheDoctor]);
   
   const handleClaimProfile = async () => {
     if (!user) return;
@@ -63,6 +64,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerifie
     }
   };
   
+  // Always show verified status to all users without login requirement
   if (isVerified) {
     if (iconOnly) {
       return (
@@ -80,6 +82,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerifie
     );
   }
   
+  // If user is logged in and is a doctor, but not the owner and profile is not verified
   if (user && profile?.user_type === 'doctor' && !isUserTheDoctor && !isVerified) {
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -128,6 +131,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerifie
     );
   }
   
+  // Default unverified badge for all users
   return (
     <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
       <DialogTrigger asChild>
