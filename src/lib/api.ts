@@ -542,19 +542,48 @@ export async function getProfileById(userId: string): Promise<Profile | null> {
 
 export async function isVerifiedDoctor(doctorId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase
+    // First check if the doctor was claimed by any user
+    const { data: verification, error: verificationError } = await supabase
       .from('doctor_verifications')
       .select('*')
       .eq('doctor_id', doctorId)
       .eq('verified', true)
       .maybeSingle();
     
-    if (error) {
-      console.error('Error checking verification status:', error);
+    if (verificationError) {
+      console.error('Error checking verification status:', verificationError);
       return false;
     }
     
-    return !!data;
+    if (verification) return true;
+    
+    // If not claimed, check if it was created by a doctor user
+    const { data: doctor, error: doctorError } = await supabase
+      .from('doctors')
+      .select('created_by_user_id')
+      .eq('id', doctorId)
+      .maybeSingle();
+      
+    if (doctorError) {
+      console.error('Error checking doctor creation status:', doctorError);
+      return false;
+    }
+    
+    if (!doctor?.created_by_user_id) return false;
+    
+    // Check if the creator is a doctor-type user
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('user_type')
+      .eq('id', doctor.created_by_user_id)
+      .maybeSingle();
+      
+    if (profileError) {
+      console.error('Error checking creator profile:', profileError);
+      return false;
+    }
+    
+    return profile?.user_type === 'doctor';
   } catch (error) {
     console.error('Error in isVerifiedDoctor:', error);
     return false;

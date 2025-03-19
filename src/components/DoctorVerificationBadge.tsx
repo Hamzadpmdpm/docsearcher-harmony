@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDoctorVerification, verifyDoctorByCurrentUser, isVerifiedDoctor } from '@/lib/api';
@@ -14,9 +13,10 @@ interface DoctorVerificationBadgeProps {
   doctorId: string;
   doctor: SupabaseDoctor;
   iconOnly?: boolean;
+  isVerified?: boolean;
 }
 
-const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorVerificationBadgeProps) => {
+const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerified: passedIsVerified }: DoctorVerificationBadgeProps) => {
   const { user, profile } = useAuth();
   const [isUserTheDoctor, setIsUserTheDoctor] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -25,16 +25,16 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
   
   useEffect(() => {
     const checkVerificationStatus = async () => {
-      // Check if the doctor has verification from any user
-      const hasVerification = await isVerifiedDoctor(doctorId);
-      setIsVerified(hasVerification);
+      if (passedIsVerified !== undefined) {
+        setIsVerified(passedIsVerified);
+      } else {
+        const hasVerification = await isVerifiedDoctor(doctorId);
+        setIsVerified(hasVerification);
+      }
       
-      // If user is logged in, check if they are the doctor
       if (doctor.created_by_user_id && user) {
-        // Check if current user created this doctor profile
         setIsUserTheDoctor(doctor.created_by_user_id === user.id);
         
-        // Or if they claimed it
         if (!isUserTheDoctor) {
           const verification = await getDoctorVerification(doctorId, user.id);
           setIsUserTheDoctor(verification?.verified || false);
@@ -43,7 +43,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     };
     
     checkVerificationStatus();
-  }, [doctorId, user, doctor]);
+  }, [doctorId, user, doctor, passedIsVerified]);
   
   const handleClaimProfile = async () => {
     if (!user) return;
@@ -63,7 +63,6 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     }
   };
   
-  // If doctor profile is verified by anyone, show verified badge
   if (isVerified) {
     if (iconOnly) {
       return (
@@ -81,7 +80,6 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     );
   }
   
-  // If user is logged in and is the actual doctor but hasn't claimed the profile
   if (user && profile?.user_type === 'doctor' && !isUserTheDoctor && !isVerified) {
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -130,7 +128,6 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false }: DoctorV
     );
   }
   
-  // Default (unverified profile) - Now visible to everyone
   return (
     <Dialog open={isClaimDialogOpen} onOpenChange={setIsClaimDialogOpen}>
       <DialogTrigger asChild>

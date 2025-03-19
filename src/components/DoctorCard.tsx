@@ -1,10 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Star, MapPin, CheckCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SupabaseDoctor } from '@/types/supabase';
 import DoctorVerificationBadge from './DoctorVerificationBadge';
+import { getDoctorRatings, isVerifiedDoctor } from '@/lib/api';
 
 interface DoctorCardProps {
   doctor: SupabaseDoctor;
@@ -13,6 +14,31 @@ interface DoctorCardProps {
 
 const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [calculatedRating, setCalculatedRating] = useState<number | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  
+  useEffect(() => {
+    // Calculate the actual rating from reviews
+    const fetchRatings = async () => {
+      const ratings = await getDoctorRatings(doctor.id);
+      if (ratings && ratings.length > 0) {
+        const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
+        const avgRating = +(sum / ratings.length).toFixed(1);
+        setCalculatedRating(avgRating);
+      } else {
+        setCalculatedRating(0);
+      }
+    };
+    
+    // Check if the doctor is verified
+    const checkVerification = async () => {
+      const verified = await isVerifiedDoctor(doctor.id);
+      setIsVerified(verified);
+    };
+    
+    fetchRatings();
+    checkVerification();
+  }, [doctor.id]);
   
   // Format the address in the correct way
   const formatAddress = (contact: any) => {
@@ -54,7 +80,9 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
               <h3 className="text-lg font-semibold text-gray-900">{doctor.name}</h3>
               <div className="flex items-center">
                 <Star size={14} className="text-yellow-500 fill-yellow-500" />
-                <span className="ml-1 text-sm font-medium text-gray-700">{doctor.rating}</span>
+                <span className="ml-1 text-sm font-medium text-gray-700">
+                  {calculatedRating !== null ? calculatedRating : doctor.rating || 0}
+                </span>
               </div>
             </div>
             
@@ -62,7 +90,7 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-health-50 text-health-700">
                 {doctor.specialty}
               </span>
-              <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} iconOnly={true} />
+              <DoctorVerificationBadge doctorId={doctor.id} doctor={doctor} iconOnly={true} isVerified={isVerified} />
             </div>
             
             <div className="mt-3 flex items-center text-sm text-gray-500">
