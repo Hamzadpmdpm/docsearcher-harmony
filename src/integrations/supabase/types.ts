@@ -14,6 +14,7 @@ export type Database = {
           comment: string | null
           created_at: string | null
           doctor_id: string
+          doctor_response: string | null
           id: string
           rating: number
           updated_at: string | null
@@ -23,6 +24,7 @@ export type Database = {
           comment?: string | null
           created_at?: string | null
           doctor_id: string
+          doctor_response?: string | null
           id?: string
           rating: number
           updated_at?: string | null
@@ -32,6 +34,7 @@ export type Database = {
           comment?: string | null
           created_at?: string | null
           doctor_id?: string
+          doctor_response?: string | null
           id?: string
           rating?: number
           updated_at?: string | null
