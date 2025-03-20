@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DoctorReviewItemProps {
   rating: DoctorRating;
@@ -27,7 +28,10 @@ const DoctorReviewItem = ({
   const [submittingResponse, setSubmittingResponse] = useState(false);
   
   const handleRespondToReview = async () => {
-    if (!responseText.trim()) return;
+    if (!responseText.trim()) {
+      toast.error("Response cannot be empty");
+      return;
+    }
     
     setSubmittingResponse(true);
     try {
@@ -36,10 +40,12 @@ const DoctorReviewItem = ({
         setResponseDialogOpen(false);
         setResponseText("");
         onResponseSubmitted();
-        toast.success("Response submitted successfully");
+      } else {
+        toast.error("Failed to submit response. Please try again.");
       }
     } catch (error) {
-      toast.error("Failed to submit response");
+      console.error("Error submitting response:", error);
+      toast.error("An error occurred while submitting response");
     } finally {
       setSubmittingResponse(false);
     }
@@ -129,7 +135,7 @@ const DoctorReviewItem = ({
                         />
                       ))}
                     </div>
-                    <p className="text-sm text-gray-700">{rating.comment}</p>
+                    <p className="text-sm text-gray-700">{rating.comment || 'No comment provided'}</p>
                   </div>
                   
                   <div>

@@ -106,13 +106,37 @@ export async function respondToRating(ratingId: string, response: string): Promi
     
     if (error) {
       console.error('Error responding to rating:', error);
+      toast.error('Failed to submit response');
       return false;
     }
     
     console.log('Response submitted successfully:', data);
+    toast.success('Response submitted successfully');
     return true;
   } catch (error) {
     console.error('Error in respondToRating:', error);
+    toast.error('Failed to submit response');
     return false;
+  }
+}
+
+export async function getUnreadRatingsForDoctor(doctorId: string): Promise<DoctorRating[]> {
+  try {
+    const { data, error } = await supabase
+      .from('doctor_ratings')
+      .select('*')
+      .eq('doctor_id', doctorId)
+      .is('doctor_response', null)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching unread ratings:', error);
+      return [];
+    }
+    
+    return data as DoctorRating[];
+  } catch (error) {
+    console.error('Error in getUnreadRatingsForDoctor:', error);
+    return [];
   }
 }

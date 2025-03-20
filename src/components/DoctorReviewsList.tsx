@@ -18,7 +18,9 @@ const DoctorReviewsList = ({ doctorId, isDoctorOwner }: DoctorReviewsListProps) 
   const loadRatings = async () => {
     setIsLoading(true);
     try {
+      console.log('Loading ratings for doctor:', doctorId);
       const doctorRatings = await getDoctorRatings(doctorId);
+      console.log('Fetched ratings:', doctorRatings);
       setRatings(doctorRatings);
       
       // Fetch profiles for each reviewer
