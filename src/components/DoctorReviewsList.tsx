@@ -13,22 +13,30 @@ interface DoctorReviewsListProps {
 const DoctorReviewsList = ({ doctorId, isDoctorOwner }: DoctorReviewsListProps) => {
   const [ratings, setRatings] = useState<DoctorRating[]>([]);
   const [userProfiles, setUserProfiles] = useState<Record<string, Profile>>({});
+  const [isLoading, setIsLoading] = useState(false);
   
   const loadRatings = async () => {
-    const doctorRatings = await getDoctorRatings(doctorId);
-    setRatings(doctorRatings);
-    
-    // Fetch profiles for each reviewer
-    const profiles: Record<string, Profile> = {};
-    for (const rating of doctorRatings) {
-      if (!profiles[rating.user_id]) {
-        const profile = await getProfileById(rating.user_id);
-        if (profile) {
-          profiles[rating.user_id] = profile;
+    setIsLoading(true);
+    try {
+      const doctorRatings = await getDoctorRatings(doctorId);
+      setRatings(doctorRatings);
+      
+      // Fetch profiles for each reviewer
+      const profiles: Record<string, Profile> = {};
+      for (const rating of doctorRatings) {
+        if (!profiles[rating.user_id]) {
+          const profile = await getProfileById(rating.user_id);
+          if (profile) {
+            profiles[rating.user_id] = profile;
+          }
         }
       }
+      setUserProfiles(profiles);
+    } catch (error) {
+      console.error("Error loading ratings:", error);
+    } finally {
+      setIsLoading(false);
     }
-    setUserProfiles(profiles);
   };
   
   useEffect(() => {
@@ -51,7 +59,9 @@ const DoctorReviewsList = ({ doctorId, isDoctorOwner }: DoctorReviewsListProps) 
   
   return (
     <div className="space-y-4">
-      {ratings.length > 0 ? (
+      {isLoading ? (
+        <div className="py-4 text-center text-gray-500">Loading reviews...</div>
+      ) : ratings.length > 0 ? (
         <div className="space-y-4">
           {ratings.map((rating) => (
             <Card key={rating.id} className="overflow-hidden">

@@ -13,7 +13,7 @@ export async function getDoctorRatings(doctorId: string): Promise<DoctorRating[]
     
     if (error) {
       console.error('Error fetching doctor ratings:', error);
-      return [];
+      throw error;
     }
     
     return data as DoctorRating[];
@@ -93,22 +93,26 @@ export async function rateDoctor(doctorId: string, userId: string, rating: numbe
 
 export async function respondToRating(ratingId: string, response: string): Promise<boolean> {
   try {
-    const { error } = await supabase
+    console.log(`Responding to rating ${ratingId} with response: ${response}`);
+    
+    const { data, error } = await supabase
       .from('doctor_ratings')
-      .update({ doctor_response: response })
-      .eq('id', ratingId);
+      .update({ 
+        doctor_response: response,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', ratingId)
+      .select();
     
     if (error) {
       console.error('Error responding to rating:', error);
-      toast.error('Failed to submit response');
       return false;
     }
     
-    toast.success('Response submitted successfully');
+    console.log('Response submitted successfully:', data);
     return true;
   } catch (error) {
     console.error('Error in respondToRating:', error);
-    toast.error('Failed to submit response');
     return false;
   }
 }

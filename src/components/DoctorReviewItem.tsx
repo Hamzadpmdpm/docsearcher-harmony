@@ -1,11 +1,11 @@
 
 import { useState } from 'react';
 import { Star, MessageSquare } from 'lucide-react';
-import { DoctorRating, Profile } from '@/types/supabase';
+import { DoctorRating } from '@/types/supabase';
 import { respondToRating } from '@/lib/api';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
@@ -36,6 +36,7 @@ const DoctorReviewItem = ({
         setResponseDialogOpen(false);
         setResponseText("");
         onResponseSubmitted();
+        toast.success("Response submitted successfully");
       }
     } catch (error) {
       toast.error("Failed to submit response");
@@ -98,12 +99,8 @@ const DoctorReviewItem = ({
           {isDoctorOwner && !rating.doctor_response && (
             <Dialog open={responseDialogOpen} 
               onOpenChange={(open) => {
-                if (open) {
-                  setResponseDialogOpen(true);
-                  setResponseText("");
-                } else {
-                  setResponseDialogOpen(false);
-                }
+                setResponseDialogOpen(open);
+                if (!open) setResponseText("");
               }}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-health-600 mt-1 text-xs">
@@ -114,6 +111,9 @@ const DoctorReviewItem = ({
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Respond to Patient Review</DialogTitle>
+                  <DialogDescription>
+                    Your response will be visible to all users viewing this review.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-3">
                   <div className="bg-gray-50 p-3 rounded">
