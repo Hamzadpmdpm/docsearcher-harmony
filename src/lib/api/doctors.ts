@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SupabaseDoctor, Profile } from '@/types/supabase';
 import { toast } from 'sonner';
@@ -32,12 +33,44 @@ export async function createDoctor(doctorData: Omit<SupabaseDoctor, 'id' | 'crea
   }
 }
 
-export async function getDoctors(): Promise<SupabaseDoctor[]> {
+export interface DoctorFilter {
+  specialty?: string | null;
+  searchQuery?: string;
+  city?: string;
+  state?: string;
+  wilaya?: string | null;
+}
+
+export async function getDoctors(filters?: DoctorFilter): Promise<SupabaseDoctor[]> {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('doctors')
-      .select('*')
-      .order('name');
+      .select('*');
+    
+    // Apply filters if they exist
+    if (filters) {
+      if (filters.specialty) {
+        query = query.eq('specialty', filters.specialty);
+      }
+      
+      if (filters.searchQuery) {
+        query = query.or(`name.ilike.%${filters.searchQuery}%,specialty.ilike.%${filters.searchQuery}%,hospital.ilike.%${filters.searchQuery}%`);
+      }
+      
+      if (filters.city) {
+        query = query.ilike('contact->>city', `%${filters.city}%`);
+      }
+      
+      if (filters.state) {
+        query = query.ilike('contact->>state', `%${filters.state}%`);
+      }
+      
+      if (filters.wilaya) {
+        query = query.ilike('contact->>wilaya', `%${filters.wilaya}%`);
+      }
+    }
+    
+    const { data, error } = await query.order('name');
     
     if (error) {
       console.error('Error fetching doctors:', error);
@@ -61,6 +94,28 @@ export async function getDoctors(): Promise<SupabaseDoctor[]> {
     console.error('Error in getDoctors:', error);
     toast.error('Failed to load doctors');
     return [];
+  }
+}
+
+export async function updateDoctor(id: string, doctorData: Partial<SupabaseDoctor>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('doctors')
+      .update(doctorData)
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error updating doctor:', error);
+      toast.error('Failed to update doctor profile');
+      return false;
+    }
+    
+    toast.success('Doctor profile updated successfully');
+    return true;
+  } catch (error) {
+    console.error('Error in updateDoctor:', error);
+    toast.error('Failed to update doctor profile');
+    return false;
   }
 }
 
