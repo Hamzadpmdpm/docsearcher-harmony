@@ -36,7 +36,7 @@ const DoctorVerificationBadge = ({ doctorId, doctor, iconOnly = false, isVerifie
       if (user && doctor.created_by_user_id) {
         setIsUserTheDoctor(doctor.created_by_user_id === user.id);
         
-        if (!isUserTheDoctor) {
+        if (!isUserTheDoctor && user.id) {
           const verification = await getDoctorVerification(doctorId, user.id);
           setIsUserTheDoctor(verification?.verified || false);
         }

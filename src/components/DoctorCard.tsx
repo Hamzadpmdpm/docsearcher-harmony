@@ -18,7 +18,7 @@ const DoctorCard = ({ doctor, index = 0 }: DoctorCardProps) => {
   const [isVerified, setIsVerified] = useState(false);
   
   useEffect(() => {
-    // Calculate the actual rating from reviews - no auth required
+    // Fetch and calculate the actual rating from reviews - no auth required
     const fetchRatings = async () => {
       try {
         const ratings = await getDoctorRatings(doctor.id);

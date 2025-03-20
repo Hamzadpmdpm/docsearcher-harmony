@@ -47,7 +47,18 @@ export async function getDoctors(options: {
       return [];
     }
     
-    return data as SupabaseDoctor[];
+    // Update each doctor with the most current rating from the ratings table
+    const updatedDoctors = await Promise.all(data.map(async (doctor) => {
+      const ratings = await getDoctorRatings(doctor.id);
+      if (ratings && ratings.length > 0) {
+        const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
+        const avgRating = +(sum / ratings.length).toFixed(1);
+        return {...doctor, rating: avgRating};
+      }
+      return doctor;
+    }));
+    
+    return updatedDoctors as SupabaseDoctor[];
   } catch (error) {
     console.error('Error in getDoctors:', error);
     toast.error('Failed to load doctors');
@@ -103,12 +114,14 @@ export async function getDoctorById(id: string): Promise<SupabaseDoctor | null> 
       }
     }
     
+    // Always update doctor with current rating from ratings
     const ratings = await getDoctorRatings(id);
     if (ratings && ratings.length > 0) {
       const sum = ratings.reduce((acc, curr) => acc + curr.rating, 0);
       const avgRating = +(sum / ratings.length).toFixed(1); // Round to 1 decimal place
       data.rating = avgRating;
       
+      // Update rating in database for consistency
       await supabase
         .from('doctors')
         .update({ rating: avgRating })
