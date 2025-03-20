@@ -1,34 +1,23 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock, MessageSquare } from 'lucide-react';
+import { Star, MapPin, Mail, Phone, ArrowLeft, CheckCircle, Languages, GraduationCap, Clock } from 'lucide-react';
 import Header from '@/components/Header';
 import AnimatedTransition from '@/components/AnimatedTransition';
 import DoctorRatingForm from '@/components/DoctorRatingForm';
 import DoctorVerificationBadge from '@/components/DoctorVerificationBadge';
+import DoctorReviewsList from '@/components/DoctorReviewsList';
 import { cn } from '@/lib/utils';
-import { getDoctorById, getDoctorRatings, getProfileById, respondToRating, isUserDoctorOwner } from '@/lib/api';
+import { getDoctorById, isUserDoctorOwner } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { DoctorRating, Profile } from '@/types/supabase';
-import { Avatar } from '@/components/ui/avatar';
-import { AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 const DoctorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ratings, setRatings] = useState<DoctorRating[]>([]);
-  const [userProfiles, setUserProfiles] = useState<Record<string, Profile>>({});
   const [isDoctorOwner, setIsDoctorOwner] = useState(false);
-  const [responseDialogOpen, setResponseDialogOpen] = useState<string | null>(null);
-  const [responseText, setResponseText] = useState("");
-  const [submittingResponse, setSubmittingResponse] = useState(false);
   
   const { data: doctor, isLoading, error, refetch } = useQuery({
     queryKey: ['doctor', id],
@@ -40,29 +29,6 @@ const DoctorProfile = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  useEffect(() => {
-    const fetchRatings = async () => {
-      if (id) {
-        const doctorRatings = await getDoctorRatings(id);
-        setRatings(doctorRatings);
-        
-        // Fetch profiles for each reviewer
-        const profiles: Record<string, Profile> = {};
-        for (const rating of doctorRatings) {
-          if (!profiles[rating.user_id]) {
-            const profile = await getProfileById(rating.user_id);
-            if (profile) {
-              profiles[rating.user_id] = profile;
-            }
-          }
-        }
-        setUserProfiles(profiles);
-      }
-    };
-    
-    fetchRatings();
-  }, [id]);
-  
   useEffect(() => {
     const checkOwnership = async () => {
       if (id && user) {
@@ -85,43 +51,6 @@ const DoctorProfile = () => {
 
   const handleRatingSubmitted = () => {
     refetch();
-    
-    if (id) {
-      getDoctorRatings(id).then(ratings => setRatings(ratings));
-    }
-  };
-  
-  const handleRespondToReview = async () => {
-    if (!id || !responseDialogOpen || !responseText.trim()) return;
-    
-    setSubmittingResponse(true);
-    try {
-      const success = await respondToRating(responseDialogOpen, responseText);
-      if (success) {
-        toast.success("Response submitted successfully");
-        setResponseDialogOpen(null);
-        setResponseText("");
-        // Refresh ratings
-        const doctorRatings = await getDoctorRatings(id);
-        setRatings(doctorRatings);
-      }
-    } catch (error) {
-      toast.error("Failed to submit response");
-    } finally {
-      setSubmittingResponse(false);
-    }
-  };
-  
-  const getReviewerName = (userId: string): string => {
-    const profile = userProfiles[userId];
-    if (profile) {
-      if (profile.first_name && profile.last_name) {
-        return `${profile.first_name} ${profile.last_name}`;
-      } else if (profile.first_name) {
-        return profile.first_name;
-      }
-    }
-    return "Anonymous";
   };
   
   if (isLoading) {
@@ -263,134 +192,11 @@ const DoctorProfile = () => {
                         )}
                       </div>
                       
-                      {ratings.length > 0 ? (
-                        <div className="space-y-6">
-                          {ratings.map((rating) => (
-                            <Card key={rating.id} className="p-4 border-gray-100">
-                              <div className="flex items-start gap-3">
-                                <Avatar className="w-10 h-10">
-                                  <AvatarFallback className="bg-health-100 text-health-600">
-                                    {getReviewerName(rating.user_id).substring(0, 2).toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                  <div className="flex items-center mb-2">
-                                    <span className="font-medium text-gray-800 mr-2">
-                                      {getReviewerName(rating.user_id)}
-                                    </span>
-                                    <div className="flex">
-                                      {[...Array(5)].map((_, i) => (
-                                        <Star 
-                                          key={i}
-                                          size={14}
-                                          className={i < rating.rating 
-                                            ? "text-yellow-500 fill-yellow-500" 
-                                            : "text-gray-300"
-                                          }
-                                        />
-                                      ))}
-                                    </div>
-                                    <span className="text-xs text-gray-500 ml-2">
-                                      {new Date(rating.created_at).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                  {rating.comment && (
-                                    <p className="text-gray-700 text-sm mb-3">{rating.comment}</p>
-                                  )}
-                                  
-                                  {/* Doctor's response */}
-                                  {rating.doctor_response && (
-                                    <div className="bg-blue-50 p-3 rounded-md mt-2 text-sm">
-                                      <div className="flex items-center mb-1">
-                                        <Avatar className="w-6 h-6 mr-2">
-                                          <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
-                                            DR
-                                          </AvatarFallback>
-                                        </Avatar>
-                                        <span className="font-medium text-blue-700">Doctor's Response</span>
-                                      </div>
-                                      <p className="text-gray-700">{rating.doctor_response}</p>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Response button for doctor */}
-                                  {isDoctorOwner && !rating.doctor_response && (
-                                    <Dialog open={responseDialogOpen === rating.id} 
-                                      onOpenChange={(open) => {
-                                        if (open) {
-                                          setResponseDialogOpen(rating.id);
-                                          setResponseText("");
-                                        } else {
-                                          setResponseDialogOpen(null);
-                                        }
-                                      }}>
-                                      <DialogTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="text-health-600 mt-1 text-xs">
-                                          <MessageSquare size={14} className="mr-1" />
-                                          Respond to review
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent>
-                                        <DialogHeader>
-                                          <DialogTitle>Respond to Patient Review</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="space-y-4 py-3">
-                                          <div className="bg-gray-50 p-3 rounded">
-                                            <div className="flex mb-1">
-                                              {[...Array(5)].map((_, i) => (
-                                                <Star 
-                                                  key={i} 
-                                                  size={12} 
-                                                  className={i < rating.rating 
-                                                    ? "text-yellow-500 fill-yellow-500" 
-                                                    : "text-gray-300"
-                                                  }
-                                                />
-                                              ))}
-                                            </div>
-                                            <p className="text-sm text-gray-700">{rating.comment}</p>
-                                          </div>
-                                          
-                                          <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                              Your Response
-                                            </label>
-                                            <Textarea
-                                              value={responseText}
-                                              onChange={(e) => setResponseText(e.target.value)}
-                                              placeholder="Write your response to this review..."
-                                              rows={4}
-                                            />
-                                          </div>
-                                          
-                                          <div className="flex justify-end gap-2">
-                                            <Button 
-                                              variant="outline" 
-                                              onClick={() => setResponseDialogOpen(null)}
-                                            >
-                                              Cancel
-                                            </Button>
-                                            <Button
-                                              onClick={handleRespondToReview}
-                                              disabled={!responseText.trim() || submittingResponse}
-                                              className="bg-health-600 hover:bg-health-700"
-                                            >
-                                              {submittingResponse ? 'Submitting...' : 'Submit Response'}
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
-                                  )}
-                                </div>
-                              </div>
-                            </Card>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 text-center py-4">
-                          No ratings yet. Be the first to rate this doctor!
-                        </p>
+                      {id && (
+                        <DoctorReviewsList 
+                          doctorId={id}
+                          isDoctorOwner={isDoctorOwner}
+                        />
                       )}
                     </div>
                   </AnimatedTransition>
